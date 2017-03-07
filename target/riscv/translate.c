@@ -36,9 +36,7 @@
 static TCGv cpu_gpr[32], cpu_pc;
 static TCGv_i64 cpu_fpr[32]; /* assume F and D extensions */
 static TCGv load_res;
-#ifdef CONFIG_USER_ONLY
-static TCGv_i32 cpu_amoinsn;
-#endif
+static TCGv load_val;
 
 #include "exec/gen-icount.h"
 
@@ -748,157 +746,153 @@ static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
 static void gen_atomic(DisasContext *ctx, uint32_t opc,
                       int rd, int rs1, int rs2)
 {
-#if !defined(CONFIG_USER_ONLY)
-    /* TODO: handle aq, rl bits? - for now just get rid of them: */
-    opc = MASK_OP_ATOMIC_NO_AQ_RL(opc);
-    TCGv source1, source2, dat;
-    TCGLabel *j = gen_new_label();
-    TCGLabel *done = gen_new_label();
-    source1 = tcg_temp_local_new();
-    source2 = tcg_temp_local_new();
-    dat = tcg_temp_local_new();
-    gen_get_gpr(source1, rs1);
-    gen_get_gpr(source2, rs2);
+    TCGv src1, src2, dat;
+    TCGLabel *l1, *l2;
+    TCGMemOp mop;
+    TCGCond cond;
 
-    switch (opc) {
-        /* all currently implemented as non-atomics */
-    case OPC_RISC_LR_W:
-        /* put addr in load_res */
-        tcg_gen_mov_tl(load_res, source1);
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        break;
-    case OPC_RISC_SC_W:
-        tcg_gen_brcond_tl(TCG_COND_NE, load_res, source1, j);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        tcg_gen_movi_tl(dat, 0); /*success */
-        tcg_gen_br(done);
-        gen_set_label(j);
-        tcg_gen_movi_tl(dat, 1); /*fail */
-        gen_set_label(done);
-        break;
-    case OPC_RISC_AMOSWAP_W:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOADD_W:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        tcg_gen_add_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOXOR_W:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        tcg_gen_xor_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOAND_W:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        tcg_gen_and_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOOR_W:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        tcg_gen_or_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOMIN_W:
-        tcg_gen_ext32s_tl(source2, source2); /* since comparing */
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_LT, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOMAX_W:
-        tcg_gen_ext32s_tl(source2, source2); /* since comparing */
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TESL | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_GT, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOMINU_W:
-        tcg_gen_ext32u_tl(source2, source2); /* since comparing */
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_LTU, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        tcg_gen_ext32s_tl(dat, dat); /* since load was TEUL */
-        break;
-    case OPC_RISC_AMOMAXU_W:
-        tcg_gen_ext32u_tl(source2, source2); /* since comparing */
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_GTU, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEUL | MO_ALIGN);
-        tcg_gen_ext32s_tl(dat, dat); /* since load was TEUL */
+    /* Extract the size of the atomic operation.  */
+    switch (extract32(opc, 12, 3)) {
+    case 2: /* 32-bit */
+        mop = MO_ALIGN | MO_TESL;
         break;
 #if defined(TARGET_RISCV64)
-    case OPC_RISC_LR_D:
-        /* put addr in load_res */
-        tcg_gen_mov_tl(load_res, source1);
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_SC_D:
-        tcg_gen_brcond_tl(TCG_COND_NE, load_res, source1, j);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_movi_tl(dat, 0); /* success */
-        tcg_gen_br(done);
-        gen_set_label(j);
-        tcg_gen_movi_tl(dat, 1); /* fail */
-        gen_set_label(done);
-        break;
-    case OPC_RISC_AMOSWAP_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOADD_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_add_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOXOR_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_xor_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOAND_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_and_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOOR_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_or_tl(source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOMIN_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_LT, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOMAX_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_GT, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOMINU_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_LTU, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        break;
-    case OPC_RISC_AMOMAXU_D:
-        tcg_gen_qemu_ld_tl(dat, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
-        tcg_gen_movcond_tl(TCG_COND_GTU, source2, dat, source2, dat, source2);
-        tcg_gen_qemu_st_tl(source2, source1, ctx->mem_idx, MO_TEQ | MO_ALIGN);
+    case 3: /* 64-bit */
+        mop = MO_ALIGN | MO_TEQ;
         break;
 #endif
+    default:
+        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        return;
+    }
+
+    src1 = tcg_temp_new();
+    src2 = tcg_temp_new();
+
+    switch (MASK_OP_ATOMIC_NO_AQ_RL_SZ(opc)) {
+    case OPC_RISC_LR:
+        /* Put addr in load_res, data in load_val.  */
+        /* TODO: Handle aq, rl bits.  */
+        gen_get_gpr(src1, rs1);
+        tcg_gen_qemu_ld_tl(load_val, src1, ctx->mem_idx, mop);
+        tcg_gen_mov_tl(load_res, src1);
+        gen_set_gpr(rd, load_val);
+        break;
+
+    case OPC_RISC_SC:
+        l1 = gen_new_label();
+        l2 = gen_new_label();
+        dat = tcg_temp_new();
+
+        /* TODO: Handle aq and rl bits.  This branch fail path would
+           skip the atomic operation which otherwise implies SEQ.  */
+
+        gen_get_gpr(src1, rs1);
+        tcg_gen_brcond_tl(TCG_COND_NE, load_res, src1, l1);
+
+        gen_get_gpr(src2, rs2);
+        tcg_gen_atomic_cmpxchg_tl(src1, load_res, load_val, src2,
+                                  ctx->mem_idx, mop);
+        tcg_gen_setcond_tl(TCG_COND_NE, dat, src1, load_val);
+        gen_set_gpr(rd, dat);
+        tcg_gen_br(l2);
+
+        gen_set_label(l1);
+        tcg_gen_movi_tl(dat, 1);
+        gen_set_gpr(rd, dat);
+
+        gen_set_label(l2);
+        tcg_temp_free(dat);
+        break;
+
+    case OPC_RISC_AMOSWAP:
+        gen_get_gpr(src1, rs1);
+        gen_get_gpr(src2, rs2);
+        tcg_gen_atomic_xchg_tl(src2, src1, src2, ctx->mem_idx, mop);
+        gen_set_gpr(rd, src2);
+        break;
+    case OPC_RISC_AMOADD:
+        gen_get_gpr(src1, rs1);
+        gen_get_gpr(src2, rs2);
+        tcg_gen_atomic_fetch_add_tl(src2, src1, src2, ctx->mem_idx, mop);
+        gen_set_gpr(rd, src2);
+        break;
+    case OPC_RISC_AMOXOR:
+        gen_get_gpr(src1, rs1);
+        gen_get_gpr(src2, rs2);
+        tcg_gen_atomic_fetch_xor_tl(src2, src1, src2, ctx->mem_idx, mop);
+        gen_set_gpr(rd, src2);
+        break;
+    case OPC_RISC_AMOAND:
+        gen_get_gpr(src1, rs1);
+        gen_get_gpr(src2, rs2);
+        tcg_gen_atomic_fetch_and_tl(src2, src1, src2, ctx->mem_idx, mop);
+        gen_set_gpr(rd, src2);
+        break;
+    case OPC_RISC_AMOOR:
+        gen_get_gpr(src1, rs1);
+        gen_get_gpr(src2, rs2);
+        tcg_gen_atomic_fetch_or_tl(src2, src1, src2, ctx->mem_idx, mop);
+        gen_set_gpr(rd, src2);
+        break;
+
+    case OPC_RISC_AMOMIN:
+        cond = TCG_COND_LT;
+        goto do_minmax;
+    case OPC_RISC_AMOMAX:
+        cond = TCG_COND_GT;
+        goto do_minmax;
+    case OPC_RISC_AMOMINU:
+        cond = TCG_COND_LTU;
+        goto do_minmax;
+    case OPC_RISC_AMOMAXU:
+        cond = TCG_COND_GTU;
+        goto do_minmax;
+    do_minmax:
+        /* TODO: Handle rl bit; aq bit is handled by the SEQ cmpxchg.  */
+        if (tb_cflags(ctx->tb) & CF_PARALLEL) {
+            l1 = gen_new_label();
+            gen_set_label(l1);
+        } else {
+            l1 = NULL;
+        }
+
+        gen_get_gpr(src1, rs1);
+        gen_get_gpr(src2, rs2);
+        if ((mop & MO_SSIZE) == MO_SL) {
+            /* Sign-extend the register comparison input.  */
+            tcg_gen_ext32s_tl(src2, src2);
+        }
+        dat = tcg_temp_local_new();
+        tcg_gen_qemu_ld_tl(dat, src1, ctx->mem_idx, mop);
+        tcg_gen_movcond_tl(cond, src2, dat, src2, dat, src2);
+
+        if (tb_cflags(ctx->tb) & CF_PARALLEL) {
+            /* Parallel context.  Make this operation atomic by verifying
+               that the memory didn't change while we computed the result.  */
+            tcg_gen_atomic_cmpxchg_tl(src2, src1, dat, src2, ctx->mem_idx, mop);
+
+            /* If the cmpxchg failed, retry. */
+            /* ??? There is an assumption here that this will eventually
+               succeed, such that we don't live-lock.  This is not unlike
+               a similar loop that the compiler would generate for e.g.
+               __atomic_fetch_and_xor, so don't worry about it.  */
+            tcg_gen_brcond_tl(TCG_COND_NE, dat, src2, l1);
+        } else {
+            /* Serial context.  Directly store the result.  */
+            tcg_gen_qemu_st_tl(src2, src1, ctx->mem_idx, mop);
+        }
+        gen_set_gpr(rd, dat);
+        tcg_temp_free(dat);
+        break;
+
     default:
         kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
         break;
     }
 
-    gen_set_gpr(rd, dat);
-    tcg_temp_free(source1);
-    tcg_temp_free(source2);
-    tcg_temp_free(dat);
-#else
-    tcg_gen_movi_i32(cpu_amoinsn, ctx->opcode);
-    generate_exception(ctx, QEMU_USER_EXCP_ATOMIC);
-#endif
+    tcg_temp_free(src1);
+    tcg_temp_free(src2);
 }
 
 static void gen_fp_fmadd(DisasContext *ctx, uint32_t opc, int rd,
@@ -1972,10 +1966,6 @@ void riscv_translate_init(void)
     cpu_pc = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState, pc), "pc");
     load_res = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState, load_res),
                              "load_res");
-
-#ifdef CONFIG_USER_ONLY
-    cpu_amoinsn = tcg_global_mem_new_i32(cpu_env,
-                    offsetof(CPURISCVState, amoinsn),
-                    "amoinsn");
-#endif
+    load_val = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState, load_val),
+                             "load_val");
 }

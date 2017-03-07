@@ -3670,6 +3670,9 @@ void cpu_loop(CPURISCVState *env)
         case EXCP_INTERRUPT:
             /* just indicate that signals should be handled asap */
             break;
+        case EXCP_ATOMIC:
+            cpu_exec_step_atomic(cs);
+            break;
         case RISCV_EXCP_U_ECALL:
             env->pc += 4;
             if (env->gpr[xA7] == TARGET_NR_arch_specific_syscall + 15) {
@@ -3692,27 +3695,6 @@ void cpu_loop(CPURISCVState *env)
             } else if (ret != -TARGET_QEMU_ESIGRETURN) {
                 env->gpr[xA0] = ret;
             }
-            if (cs->singlestep_enabled) {
-                goto gdbstep;
-            }
-            break;
-        case QEMU_USER_EXCP_ATOMIC:
-            start_exclusive();
-            switch (riscv_cpu_do_usermode_amo(cs)) {
-            case RISCV_AMO_OK:
-                env->pc += 4;
-                break;
-            case RISCV_AMO_BADADDR:
-                signum = TARGET_SIGSEGV;
-                sigcode = TARGET_SEGV_MAPERR;
-                sigaddr = env->badaddr;
-                break;
-            case RISCV_AMO_BADINSN:
-            default:
-                signum = TARGET_SIGILL;
-                sigcode = TARGET_ILL_ILLOPC;
-            }
-            end_exclusive();
             if (cs->singlestep_enabled) {
                 goto gdbstep;
             }

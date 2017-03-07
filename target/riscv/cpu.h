@@ -79,6 +79,7 @@ struct CPURISCVState {
     uint64_t fpr[32]; /* assume both F and D extensions */
     target_ulong pc;
     target_ulong load_res;
+    target_ulong load_val;
 
     target_ulong frm;
     target_ulong fstatus;
@@ -92,11 +93,7 @@ struct CPURISCVState {
     target_ulong priv_ver;
     target_ulong misa;
 
-#ifdef CONFIG_USER_ONLY
-    uint32_t amoinsn;
-    target_long amoaddr;
-    target_long amotest;
-#else
+#ifndef CONFIG_USER_ONLY
     target_ulong priv;
 
     target_ulong mhartid;

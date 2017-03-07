@@ -1,10 +1,4 @@
-/* Return codes for riscv_cpu_do_userspace_amo */
-#define RISCV_AMO_OK      0
-#define RISCV_AMO_BADINSN 1
-#define RISCV_AMO_BADADDR 2
-
 /* not RISC-V exception codes - this is for qemu user-mode */
-#define QEMU_USER_EXCP_ATOMIC              0xc
 #define QEMU_USER_EXCP_FAULT               0xd
 
 #define xRA 1   /* return address (aka link register) */
@@ -20,7 +14,3 @@
 #define xA5 15
 #define xA6 16
 #define xA7 17  /* syscall number goes here */
-
-#ifdef CONFIG_USER_ONLY
-int riscv_cpu_do_usermode_amo(CPUState *cs);
-#endif
