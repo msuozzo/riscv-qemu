@@ -74,5 +74,4 @@ DEF_HELPER_2(sret, tl, env, tl)
 DEF_HELPER_2(mret, tl, env, tl)
 DEF_HELPER_1(wfi, void, env)
 DEF_HELPER_1(tlb_flush, void, env)
-DEF_HELPER_1(fence_i, void, env)
 #endif
