@@ -231,12 +231,19 @@ void QEMU_NORETURN do_raise_exception_err(CPURISCVState *env,
 uint64_t cpu_riscv_read_instret(CPURISCVState *env);
 uint64_t cpu_riscv_read_rtc(void);
 
+#define TB_FLAGS_MMU_MASK  3
+#define TB_FLAGS_FP_ENABLE MSTATUS_FS
+
 static inline void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
                                         target_ulong *cs_base, uint32_t *flags)
 {
     *pc = env->pc;
     *cs_base = 0;
-    *flags = cpu_mmu_index(env, false);
+#ifdef CONFIG_USER_ONLY
+    *flags = TB_FLAGS_FP_ENABLE;
+#else
+    *flags = cpu_mmu_index(env, 0) | (env->mstatus & MSTATUS_FS);
+#endif
 }
 
 static inline int riscv_mstatus_fs(CPURISCVState *env)

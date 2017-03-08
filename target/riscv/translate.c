@@ -45,8 +45,9 @@ typedef struct DisasContext {
     target_ulong pc;
     target_ulong next_pc;
     uint32_t opcode;
+    uint32_t flags;
+    uint32_t mem_idx;
     int singlestep_enabled;
-    int mem_idx;
     int bstate;
 } DisasContext;
 
@@ -173,58 +174,39 @@ static void gen_mulhsu(TCGv ret, TCGv arg1, TCGv arg2)
 static void gen_fsgnj(DisasContext *ctx, uint32_t rd, uint32_t rs1,
     uint32_t rs2, int rm, uint64_t min)
 {
-    TCGv t0 = tcg_temp_new();
-#if !defined(CONFIG_USER_ONLY)
-    TCGLabel *fp_ok = gen_new_label();
-    TCGLabel *done = gen_new_label();
-
-    /* check MSTATUS.FS */
-    tcg_gen_ld_tl(t0, cpu_env, offsetof(CPURISCVState, mstatus));
-    tcg_gen_andi_tl(t0, t0, MSTATUS_FS);
-    tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, fp_ok);
-    /* MSTATUS_FS field was zero */
-    kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-    tcg_gen_br(done);
-
-    /* proceed with operation */
-    gen_set_label(fp_ok);
-#endif
-    TCGv_i64 src1 = tcg_temp_new_i64();
-    TCGv_i64 src2 = tcg_temp_new_i64();
-
-    tcg_gen_mov_i64(src1, cpu_fpr[rs1]);
-    tcg_gen_mov_i64(src2, cpu_fpr[rs2]);
-
     switch (rm) {
     case 0: /* fsgnj */
-
         if (rs1 == rs2) { /* FMOV */
-            tcg_gen_mov_i64(cpu_fpr[rd], src1);
+            tcg_gen_mov_i64(cpu_fpr[rd], cpu_fpr[rs1]);
+        } else {
+            tcg_gen_deposit_i64(cpu_fpr[rd], cpu_fpr[rs2], cpu_fpr[rs1],
+                                0, min == INT32_MIN ? 31 : 63);
         }
-
-        tcg_gen_andi_i64(src1, src1, ~min);
-        tcg_gen_andi_i64(src2, src2, min);
-        tcg_gen_or_i64(cpu_fpr[rd], src1, src2);
         break;
     case 1: /* fsgnjn */
-        tcg_gen_andi_i64(src1, src1, ~min);
-        tcg_gen_not_i64(src2, src2);
-        tcg_gen_andi_i64(src2, src2, min);
-        tcg_gen_or_i64(cpu_fpr[rd], src1, src2);
+        if (rs1 == rs2) { /* FNEG */
+            tcg_gen_xori_i64(cpu_fpr[rd], cpu_fpr[rs1], min);
+        } else {
+            TCGv_i64 t0 = tcg_temp_new_i64();
+            tcg_gen_not_i64(t0, cpu_fpr[rs2]);
+            tcg_gen_deposit_i64(cpu_fpr[rd], t0, cpu_fpr[rs1],
+                                0, min == INT32_MIN ? 31 : 63);
+            tcg_temp_free_i64(t0);
+        }
         break;
     case 2: /* fsgnjx */
-        tcg_gen_andi_i64(src2, src2, min);
-        tcg_gen_xor_i64(cpu_fpr[rd], src1, src2);
+        if (rs1 == rs2) { /* FABS */
+            tcg_gen_andi_i64(cpu_fpr[rd], cpu_fpr[rs1], ~min);
+        } else {
+            TCGv_i64 t0 = tcg_temp_new_i64();
+            tcg_gen_andi_i64(t0, cpu_fpr[rs2], min);
+            tcg_gen_xor_i64(cpu_fpr[rd], cpu_fpr[rs1], t0);
+            tcg_temp_free_i64(t0);
+        }
         break;
     default:
         kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
     }
-    tcg_temp_free_i64(src1);
-    tcg_temp_free_i64(src2);
-#if !defined(CONFIG_USER_ONLY)
-    gen_set_label(done);
-#endif
-    tcg_temp_free(t0);
 }
 
 static void gen_arith(DisasContext *ctx, uint32_t opc, int rd, int rs1,
@@ -665,22 +647,14 @@ static void gen_store(DisasContext *ctx, uint32_t opc, int rs1, int rs2,
 static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
         int rs1, target_long imm)
 {
-    TCGv t0 = tcg_temp_new();
-#if !defined(CONFIG_USER_ONLY)
-    TCGLabel *fp_ok = gen_new_label();
-    TCGLabel *done = gen_new_label();
+    TCGv t0;
 
-    /* check MSTATUS.FS */
-    tcg_gen_ld_tl(t0, cpu_env, offsetof(CPURISCVState, mstatus));
-    tcg_gen_andi_tl(t0, t0, MSTATUS_FS);
-    tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, fp_ok);
-    /* MSTATUS_FS field was zero */
-    kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-    tcg_gen_br(done);
+    if (!(ctx->flags & TB_FLAGS_FP_ENABLE)) {
+        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        return;
+    }
 
-    /* proceed with operation */
-    gen_set_label(fp_ok);
-#endif
+    t0 = tcg_temp_new();
     gen_get_gpr(t0, rs1);
     tcg_gen_addi_tl(t0, t0, imm);
 
@@ -695,32 +669,20 @@ static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
         kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
         break;
     }
-#if !defined(CONFIG_USER_ONLY)
-    gen_set_label(done);
-#endif
     tcg_temp_free(t0);
 }
 
 static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
         int rs2, target_long imm)
 {
-    TCGv t0 = tcg_temp_new();
-    TCGv t1 = tcg_temp_new();
-#if !defined(CONFIG_USER_ONLY)
-    TCGLabel *fp_ok = gen_new_label();
-    TCGLabel *done = gen_new_label();
+    TCGv t0;
 
-    /* check MSTATUS.FS */
-    tcg_gen_ld_tl(t0, cpu_env, offsetof(CPURISCVState, mstatus));
-    tcg_gen_andi_tl(t0, t0, MSTATUS_FS);
-    tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, fp_ok);
-    /* MSTATUS_FS field was zero */
-    kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-    tcg_gen_br(done);
+    if (!(ctx->flags & TB_FLAGS_FP_ENABLE)) {
+        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        return;
+    }
 
-    /* proceed with operation */
-    gen_set_label(fp_ok);
-#endif
+    t0 = tcg_temp_new();
     gen_get_gpr(t0, rs1);
     tcg_gen_addi_tl(t0, t0, imm);
 
@@ -736,11 +698,7 @@ static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
         break;
     }
 
-#if !defined(CONFIG_USER_ONLY)
-    gen_set_label(done);
-#endif
     tcg_temp_free(t0);
-    tcg_temp_free(t1);
 }
 
 static void gen_atomic(DisasContext *ctx, uint32_t opc,
@@ -1004,9 +962,16 @@ static void gen_fp_fnmadd(DisasContext *ctx, uint32_t opc, int rd,
 static void gen_fp_arith(DisasContext *ctx, uint32_t opc, int rd,
         int rs1, int rs2, int rm)
 {
-    TCGv_i64 rm_reg = tcg_temp_new_i64();
-    TCGv write_int_rd = tcg_temp_new();
-    tcg_gen_movi_i64(rm_reg, rm);
+    TCGv_i64 rm_reg;
+    TCGv write_int_rd;
+
+    if (!(ctx->flags & TB_FLAGS_FP_ENABLE)) {
+        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        return;
+    }
+
+    rm_reg = tcg_const_i64(rm);
+    write_int_rd = tcg_temp_new();
 
     switch (opc) {
     case OPC_RISC_FADD_S:
@@ -1100,70 +1065,29 @@ static void gen_fp_arith(DisasContext *ctx, uint32_t opc, int rd,
             kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
         }
         break;
-    case OPC_RISC_FMV_X_S: {
-#if !defined(CONFIG_USER_ONLY)
-            TCGLabel *fp_ok = gen_new_label();
-            TCGLabel *done = gen_new_label();
-
-            /* check MSTATUS.FS */
-            tcg_gen_ld_tl(write_int_rd, cpu_env,
-                offsetof(CPURISCVState, mstatus));
-            tcg_gen_andi_tl(write_int_rd, write_int_rd, MSTATUS_FS);
-            tcg_gen_brcondi_tl(TCG_COND_NE, write_int_rd, 0x0, fp_ok);
-            /* MSTATUS_FS field was zero */
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-            tcg_gen_br(done);
-
-            /* proceed with operation */
-            gen_set_label(fp_ok);
-#endif
-            /* also OPC_RISC_FCLASS_S */
-            if (rm == 0x0) { /* FMV */
+    case OPC_RISC_FMV_X_S:
+        /* also OPC_RISC_FCLASS_S */
+        if (rm == 0x0) { /* FMV */
 #if defined(TARGET_RISCV64)
-                tcg_gen_ext32s_tl(write_int_rd, cpu_fpr[rs1]);
+            tcg_gen_ext32s_tl(write_int_rd, cpu_fpr[rs1]);
 #else
-                tcg_gen_extrl_i64_i32(write_int_rd, cpu_fpr[rs1]);
+            tcg_gen_extrl_i64_i32(write_int_rd, cpu_fpr[rs1]);
 #endif
-            } else if (rm == 0x1) {
-                gen_helper_fclass_s(write_int_rd, cpu_env, cpu_fpr[rs1]);
-            } else {
-                kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-            }
-            gen_set_gpr(rd, write_int_rd);
-#if !defined(CONFIG_USER_ONLY)
-            gen_set_label(done);
-#endif
-            break;
+        } else if (rm == 0x1) {
+            gen_helper_fclass_s(write_int_rd, cpu_env, cpu_fpr[rs1]);
+        } else {
+            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
         }
+        gen_set_gpr(rd, write_int_rd);
+        break;
     case OPC_RISC_FMV_S_X:
-        {
-#if !defined(CONFIG_USER_ONLY)
-            TCGLabel *fp_ok = gen_new_label();
-            TCGLabel *done = gen_new_label();
-
-            /* check MSTATUS.FS */
-            tcg_gen_ld_tl(write_int_rd, cpu_env,
-                offsetof(CPURISCVState, mstatus));
-            tcg_gen_andi_tl(write_int_rd, write_int_rd, MSTATUS_FS);
-            tcg_gen_brcondi_tl(TCG_COND_NE, write_int_rd, 0x0, fp_ok);
-            /* MSTATUS_FS field was zero */
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-            tcg_gen_br(done);
-
-            /* proceed with operation */
-            gen_set_label(fp_ok);
-#endif
-            gen_get_gpr(write_int_rd, rs1);
+        gen_get_gpr(write_int_rd, rs1);
 #if defined(TARGET_RISCV64)
-            tcg_gen_mov_tl(cpu_fpr[rd], write_int_rd);
+        tcg_gen_mov_tl(cpu_fpr[rd], write_int_rd);
 #else
-            tcg_gen_extu_i32_i64(cpu_fpr[rd], write_int_rd);
+        tcg_gen_extu_i32_i64(cpu_fpr[rd], write_int_rd);
 #endif
-#if !defined(CONFIG_USER_ONLY)
-            gen_set_label(done);
-#endif
-            break;
-        }
+        break;
     /* double */
     case OPC_RISC_FADD_D:
         gen_helper_fadd_d(cpu_fpr[rd], cpu_env, cpu_fpr[rs1], cpu_fpr[rs2],
@@ -1272,62 +1196,20 @@ static void gen_fp_arith(DisasContext *ctx, uint32_t opc, int rd,
         break;
 #if defined(TARGET_RISCV64)
     case OPC_RISC_FMV_X_D:
-        {
-#if !defined(CONFIG_USER_ONLY)
-            TCGLabel *fp_ok = gen_new_label();
-            TCGLabel *done = gen_new_label();
-
-            /* check MSTATUS.FS */
-            tcg_gen_ld_tl(write_int_rd, cpu_env,
-                offsetof(CPURISCVState, mstatus));
-            tcg_gen_andi_tl(write_int_rd, write_int_rd, MSTATUS_FS);
-            tcg_gen_brcondi_tl(TCG_COND_NE, write_int_rd, 0x0, fp_ok);
-            /* MSTATUS_FS field was zero */
+        /* also OPC_RISC_FCLASS_D */
+        if (rm == 0x0) { /* FMV */
+            tcg_gen_mov_tl(write_int_rd, cpu_fpr[rs1]);
+        } else if (rm == 0x1) {
+            gen_helper_fclass_d(write_int_rd, cpu_env, cpu_fpr[rs1]);
+        } else {
             kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-            tcg_gen_br(done);
-
-            /* proceed with operation */
-            gen_set_label(fp_ok);
-#endif
-            /* also OPC_RISC_FCLASS_D */
-            if (rm == 0x0) { /* FMV */
-                tcg_gen_mov_tl(write_int_rd, cpu_fpr[rs1]);
-            } else if (rm == 0x1) {
-                gen_helper_fclass_d(write_int_rd, cpu_env, cpu_fpr[rs1]);
-            } else {
-                kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-            }
-            gen_set_gpr(rd, write_int_rd);
-#if !defined(CONFIG_USER_ONLY)
-            gen_set_label(done);
-#endif
-            break;
         }
+        gen_set_gpr(rd, write_int_rd);
+        break;
     case OPC_RISC_FMV_D_X:
-        {
-#if !defined(CONFIG_USER_ONLY)
-            TCGLabel *fp_ok = gen_new_label();
-            TCGLabel *done = gen_new_label();
-
-            /* check MSTATUS.FS */
-            tcg_gen_ld_tl(write_int_rd, cpu_env,
-                offsetof(CPURISCVState, mstatus));
-            tcg_gen_andi_tl(write_int_rd, write_int_rd, MSTATUS_FS);
-            tcg_gen_brcondi_tl(TCG_COND_NE, write_int_rd, 0x0, fp_ok);
-            /* MSTATUS_FS field was zero */
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-            tcg_gen_br(done);
-
-            /* proceed with operation */
-            gen_set_label(fp_ok);
-#endif
-            gen_get_gpr(write_int_rd, rs1);
-            tcg_gen_mov_tl(cpu_fpr[rd], write_int_rd);
-#if !defined(CONFIG_USER_ONLY)
-            gen_set_label(done);
-#endif
-            break;
-        }
+        gen_get_gpr(write_int_rd, rs1);
+        tcg_gen_mov_tl(cpu_fpr[rd], write_int_rd);
+        break;
 #endif
     default:
         kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
@@ -1871,8 +1753,9 @@ void gen_intermediate_code(CPUState *cs, TranslationBlock *tb)
 
     ctx.tb = tb;
     ctx.bstate = BS_NONE;
+    ctx.flags = tb->flags;
+    ctx.mem_idx = tb->flags & TB_FLAGS_MMU_MASK;
 
-    ctx.mem_idx = cpu_mmu_index(env, false);
     num_insns = 0;
     max_insns = tb->cflags & CF_COUNT_MASK;
     if (max_insns == 0) {
