@@ -1106,7 +1106,7 @@ static void gen_fp_arith(DisasContext *ctx, uint32_t opc, int rd,
 #endif
             break;
         case 1:
-            gen_helper_fclass_s(t0, cpu_env, cpu_fpr[rs1]);
+            gen_helper_fclass_s(t0, cpu_fpr[rs1]);
             break;
         default:
             goto do_illegal;
@@ -1274,7 +1274,7 @@ static void gen_fp_arith(DisasContext *ctx, uint32_t opc, int rd,
             break;
         case 1:
             t0 = tcg_temp_new();
-            gen_helper_fclass_d(t0, cpu_env, cpu_fpr[rs1]);
+            gen_helper_fclass_d(t0, cpu_fpr[rs1]);
             gen_set_gpr(rd, t0);
             tcg_temp_free(t0);
             break;
