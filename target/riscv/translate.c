@@ -750,6 +750,7 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
     TCGLabel *l1, *l2;
     TCGMemOp mop;
     TCGCond cond;
+    bool aq, rl;
 
     /* Extract the size of the atomic operation.  */
     switch (extract32(opc, 12, 3)) {
@@ -765,6 +766,8 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
         kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
         return;
     }
+    rl = extract32(opc, 25, 1);
+    aq = extract32(opc, 26, 1);
 
     src1 = tcg_temp_new();
     src2 = tcg_temp_new();
@@ -772,9 +775,14 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
     switch (MASK_OP_ATOMIC_NO_AQ_RL_SZ(opc)) {
     case OPC_RISC_LR:
         /* Put addr in load_res, data in load_val.  */
-        /* TODO: Handle aq, rl bits.  */
         gen_get_gpr(src1, rs1);
+        if (rl) {
+            tcg_gen_mb(TCG_MO_ALL | TCG_BAR_STRL);
+        }
         tcg_gen_qemu_ld_tl(load_val, src1, ctx->mem_idx, mop);
+        if (aq) {
+            tcg_gen_mb(TCG_MO_ALL | TCG_BAR_LDAQ);
+        }
         tcg_gen_mov_tl(load_res, src1);
         gen_set_gpr(rd, load_val);
         break;
@@ -784,13 +792,12 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
         l2 = gen_new_label();
         dat = tcg_temp_new();
 
-        /* TODO: Handle aq and rl bits.  This branch fail path would
-           skip the atomic operation which otherwise implies SEQ.  */
-
         gen_get_gpr(src1, rs1);
         tcg_gen_brcond_tl(TCG_COND_NE, load_res, src1, l1);
 
         gen_get_gpr(src2, rs2);
+        /* Note that the TCG atomic primitives are SC,
+           so we can ignore AQ/RL along this path.  */
         tcg_gen_atomic_cmpxchg_tl(src1, load_res, load_val, src2,
                                   ctx->mem_idx, mop);
         tcg_gen_setcond_tl(TCG_COND_NE, dat, src1, load_val);
@@ -798,6 +805,9 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
         tcg_gen_br(l2);
 
         gen_set_label(l1);
+        /* Address comparion failure.  However, we still need to
+           provide the memory barrier implied by AQ/RL.  */
+        tcg_gen_mb(TCG_MO_ALL + aq * TCG_BAR_LDAQ + rl * TCG_BAR_STRL);
         tcg_gen_movi_tl(dat, 1);
         gen_set_gpr(rd, dat);
 
@@ -806,6 +816,8 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
         break;
 
     case OPC_RISC_AMOSWAP:
+        /* Note that the TCG atomic primitives are SC,
+           so we can ignore AQ/RL along this path.  */
         gen_get_gpr(src1, rs1);
         gen_get_gpr(src2, rs2);
         tcg_gen_atomic_xchg_tl(src2, src1, src2, ctx->mem_idx, mop);
@@ -849,7 +861,12 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
         cond = TCG_COND_GTU;
         goto do_minmax;
     do_minmax:
-        /* TODO: Handle rl bit; aq bit is handled by the SEQ cmpxchg.  */
+        /* Handle the RL barrier.  The AQ barrier is handled along the
+           parallel path by the SC atomic cmpxchg.  On the serial path,
+           of course, barriers do not matter.  */
+        if (rl) {
+            tcg_gen_mb(TCG_MO_ALL | TCG_BAR_STRL);
+        }
         if (tb_cflags(ctx->tb) & CF_PARALLEL) {
             l1 = gen_new_label();
             gen_set_label(l1);
