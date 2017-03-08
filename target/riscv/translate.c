@@ -57,8 +57,6 @@ typedef struct DisasContext {
     int frm;
 } DisasContext;
 
-static inline void kill_unknown(DisasContext *ctx, int excp);
-
 enum {
     BS_NONE     = 0, /* When seen outside of translation while loop, indicates
                      need to exit tb due to end of page. */
@@ -86,27 +84,27 @@ static const int tcg_memop_lookup[8] = {
 #define CASE_OP_32_64(X) case X
 #endif
 
-static inline void generate_exception(DisasContext *ctx, int excp)
+static void generate_exception(DisasContext *ctx, int excp)
 {
     tcg_gen_movi_tl(cpu_pc, ctx->pc);
     TCGv_i32 helper_tmp = tcg_const_i32(excp);
     gen_helper_raise_exception(cpu_env, helper_tmp);
     tcg_temp_free_i32(helper_tmp);
+    ctx->bstate = BS_BRANCH;
 }
 
-static inline void generate_exception_mbadaddr(DisasContext *ctx, int excp)
+static void generate_exception_mbadaddr(DisasContext *ctx, int excp)
 {
     tcg_gen_movi_tl(cpu_pc, ctx->pc);
     TCGv_i32 helper_tmp = tcg_const_i32(excp);
     gen_helper_raise_exception_mbadaddr(cpu_env, helper_tmp, cpu_pc);
     tcg_temp_free_i32(helper_tmp);
+    ctx->bstate = BS_BRANCH;
 }
 
-/* unknown instruction */
-static inline void kill_unknown(DisasContext *ctx, int excp)
+static void gen_exception_illegal(DisasContext *ctx)
 {
-    generate_exception(ctx, excp);
-    ctx->bstate = BS_STOP;
+    generate_exception(ctx, RISCV_EXCP_ILLEGAL_INST);
 }
 
 static inline bool use_goto_tb(DisasContext *ctx, target_ulong dest)
@@ -211,7 +209,7 @@ static void gen_fsgnj(DisasContext *ctx, uint32_t rd, uint32_t rs1,
         }
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
     }
 }
 
@@ -411,8 +409,8 @@ static void gen_arith(DisasContext *ctx, uint32_t opc, int rd, int rs1,
         tcg_temp_free(resultopt1);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-        break;
+        gen_exception_illegal(ctx);
+        return;
     }
 
     if (opc & 0x8) { /* sign extend for W instructions */
@@ -457,7 +455,7 @@ static void gen_arith_imm(DisasContext *ctx, uint32_t opc, int rd,
 #if defined(TARGET_RISCV64)
     case OPC_RISC_SLLIW:
          if ((imm >= 32)) {
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            goto do_illegal;
             break;
          }
         /* fall through to SLLI */
@@ -466,13 +464,13 @@ static void gen_arith_imm(DisasContext *ctx, uint32_t opc, int rd,
         if (imm < TARGET_LONG_BITS) {
             tcg_gen_shli_tl(source1, source1, imm);
         } else {
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            goto do_illegal;
         }
         break;
 #if defined(TARGET_RISCV64)
     case OPC_RISC_SHIFT_RIGHT_IW:
         if ((imm & 0x3ff) >= 32) {
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            goto do_illegal;
         }
         tcg_gen_shli_tl(source1, source1, 32);
         extra_shamt = 32;
@@ -489,12 +487,13 @@ static void gen_arith_imm(DisasContext *ctx, uint32_t opc, int rd,
                 tcg_gen_shri_tl(source1, source1, imm + extra_shamt);
             }
         } else {
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            goto do_illegal;
         }
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-        break;
+    do_illegal:
+        gen_exception_illegal(ctx);
+        return;
     }
 
     if (opc & 0x8) { /* sign-extend for W instructions */
@@ -556,7 +555,7 @@ static void gen_jalr(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
         ctx->bstate = BS_BRANCH;
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
     tcg_temp_free(t0);
@@ -592,8 +591,8 @@ static void gen_branch(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
         tcg_gen_brcond_tl(TCG_COND_GEU, source1, source2, l);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-        break;
+        gen_exception_illegal(ctx);
+        return;
     }
 
     gen_goto_tb(ctx, 1, ctx->next_pc);
@@ -620,11 +619,11 @@ static void gen_load(DisasContext *ctx, uint32_t opc, int rd, int rs1,
     int memop = tcg_memop_lookup[(opc >> 12) & 0x7];
 
     if (memop < 0) {
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-    } else {
-        tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
+        gen_exception_illegal(ctx);
+        return;
     }
 
+    tcg_gen_qemu_ld_tl(t1, t0, ctx->mem_idx, memop);
     gen_set_gpr(rd, t1);
     tcg_temp_free(t0);
     tcg_temp_free(t1);
@@ -641,11 +640,11 @@ static void gen_store(DisasContext *ctx, uint32_t opc, int rs1, int rs2,
     int memop = tcg_memop_lookup[(opc >> 12) & 0x7];
 
     if (memop < 0) {
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-    } else {
-        tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
+        gen_exception_illegal(ctx);
+        return;
     }
 
+    tcg_gen_qemu_st_tl(dat, t0, ctx->mem_idx, memop);
     tcg_temp_free(t0);
     tcg_temp_free(dat);
 }
@@ -656,7 +655,7 @@ static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
     TCGv t0;
 
     if (!(ctx->flags & TB_FLAGS_FP_ENABLE)) {
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         return;
     }
 
@@ -672,7 +671,7 @@ static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
         tcg_gen_qemu_ld_i64(cpu_fpr[rd], t0, ctx->mem_idx, MO_TEQ);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
     tcg_temp_free(t0);
@@ -684,7 +683,7 @@ static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
     TCGv t0;
 
     if (!(ctx->flags & TB_FLAGS_FP_ENABLE)) {
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         return;
     }
 
@@ -700,7 +699,7 @@ static void gen_fp_store(DisasContext *ctx, uint32_t opc, int rs1,
         tcg_gen_qemu_st_i64(cpu_fpr[rs2], t0, ctx->mem_idx, MO_TEQ);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 
@@ -727,7 +726,7 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
         break;
 #endif
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         return;
     }
     rl = extract32(opc, 25, 1);
@@ -868,7 +867,7 @@ static void gen_atomic(DisasContext *ctx, uint32_t opc,
         break;
 
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 
@@ -904,7 +903,7 @@ static void gen_fp_fmadd(DisasContext *ctx, uint32_t opc, int rd,
                            cpu_fpr[rs2], cpu_fpr[rs3]);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 }
@@ -924,7 +923,7 @@ static void gen_fp_fmsub(DisasContext *ctx, uint32_t opc, int rd,
                            cpu_fpr[rs2], cpu_fpr[rs3]);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 }
@@ -944,7 +943,7 @@ static void gen_fp_fnmsub(DisasContext *ctx, uint32_t opc, int rd,
                             cpu_fpr[rs2], cpu_fpr[rs3]);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 }
@@ -964,7 +963,7 @@ static void gen_fp_fnmadd(DisasContext *ctx, uint32_t opc, int rd,
                             cpu_fpr[rs2], cpu_fpr[rs3]);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 }
@@ -1296,7 +1295,7 @@ static void gen_fp_arith(DisasContext *ctx, uint32_t opc, int rd,
         if (t0) {
             tcg_temp_free(t0);
         }
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 }
@@ -1331,7 +1330,7 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             break;
 #ifndef CONFIG_USER_ONLY
         case 0x002: /* URET */
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            gen_exception_illegal(ctx);
             break;
         case 0x102: /* SRET */
             gen_helper_sret(cpu_pc, cpu_env, cpu_pc);
@@ -1339,7 +1338,7 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             ctx->bstate = BS_BRANCH;
             break;
         case 0x202: /* HRET */
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            gen_exception_illegal(ctx);
             break;
         case 0x302: /* MRET */
             gen_helper_mret(cpu_pc, cpu_env, cpu_pc);
@@ -1347,7 +1346,7 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             ctx->bstate = BS_BRANCH;
             break;
         case 0x7b2: /* DRET */
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            gen_exception_illegal(ctx);
             break;
         case 0x105: /* WFI */
             tcg_gen_movi_tl(cpu_pc, ctx->next_pc);
@@ -1362,7 +1361,7 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             break;
 #endif
         default:
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            gen_exception_illegal(ctx);
             break;
         }
         break;
@@ -1388,8 +1387,8 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             gen_helper_csrrc(dest, cpu_env, imm_rs1, csr_store, rs1_pass);
             break;
         default:
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
-            break;
+            gen_exception_illegal(ctx);
+            return;
         }
         gen_set_gpr(rd, dest);
         /* end tb since we may be changing priv modes, to get mmu_index right */
@@ -1415,7 +1414,7 @@ static void decode_RV32_64C0(DisasContext *ctx)
     case 0:
         /* illegal */
         if (ctx->opcode == 0) {
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            gen_exception_illegal(ctx);
         } else {
             /* C.ADDI4SPN -> addi rd', x2, zimm[9:2]*/
             gen_arith_imm(ctx, OPC_RISC_ADDI, rd_rs2, 2,
@@ -1446,7 +1445,7 @@ static void decode_RV32_64C0(DisasContext *ctx)
         break;
     case 4:
         /* reserved */
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     case 5:
         /* C.FSD(RV32/64) -> fsd rs2', offset[7:3](rs1') */
@@ -1796,7 +1795,7 @@ static void decode_RV32_64G(CPURISCVState *env, DisasContext *ctx)
                    (ctx->opcode & 0xFFF00000) >> 20);
         break;
     default:
-        kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+        gen_exception_illegal(ctx);
         break;
     }
 }
@@ -1806,7 +1805,7 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx)
     /* check for compressed insn */
     if (extract32(ctx->opcode, 0, 2) != 3) {
         if (!riscv_has_ext(env, RVC)) {
-            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
+            gen_exception_illegal(ctx);
         } else {
             ctx->next_pc = ctx->pc + 2;
             decode_RV32_64C(env, ctx);
