@@ -102,6 +102,13 @@ static void generate_exception_mbadaddr(DisasContext *ctx, int excp)
     ctx->bstate = BS_BRANCH;
 }
 
+static void gen_exception_debug(void)
+{
+    TCGv_i32 helper_tmp = tcg_const_i32(EXCP_DEBUG);
+    gen_helper_raise_exception(cpu_env, helper_tmp);
+    tcg_temp_free_i32(helper_tmp);
+}
+
 static void gen_exception_illegal(DisasContext *ctx)
 {
     generate_exception(ctx, RISCV_EXCP_ILLEGAL_INST);
@@ -120,7 +127,7 @@ static inline bool use_goto_tb(DisasContext *ctx, target_ulong dest)
 #endif
 }
 
-static inline void gen_goto_tb(DisasContext *ctx, int n, target_ulong dest)
+static void gen_goto_tb(DisasContext *ctx, int n, target_ulong dest)
 {
     if (use_goto_tb(ctx, dest)) {
         /* chaining is only allowed when the jump is to the same page */
@@ -130,9 +137,10 @@ static inline void gen_goto_tb(DisasContext *ctx, int n, target_ulong dest)
     } else {
         tcg_gen_movi_tl(cpu_pc, dest);
         if (ctx->singlestep_enabled) {
-            gen_helper_raise_exception_debug(cpu_env);
+            gen_exception_debug();
+        } else {
+            tcg_gen_exit_tb(0);
         }
-        tcg_gen_exit_tb(0);
     }
 }
 
@@ -522,7 +530,6 @@ static void gen_jal(CPURISCVState *env, DisasContext *ctx, int rd,
 
     gen_goto_tb(ctx, 0, ctx->pc + imm); /* must use this for safety */
     ctx->bstate = BS_BRANCH;
-
 }
 
 static void gen_jalr(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
@@ -1855,7 +1862,7 @@ void gen_intermediate_code(CPUState *cs, TranslationBlock *tb)
         if (unlikely(cpu_breakpoint_test(cs, ctx.pc, BP_ANY))) {
             tcg_gen_movi_tl(cpu_pc, ctx.pc);
             ctx.bstate = BS_BRANCH;
-            gen_helper_raise_exception_debug(cpu_env);
+            gen_exception_debug();
             /* The address covered by the breakpoint must be included in
                [tb->pc, tb->pc + tb->size) in order to for it to be
                properly cleared -- thus we increment the PC here so that
@@ -1892,24 +1899,21 @@ void gen_intermediate_code(CPUState *cs, TranslationBlock *tb)
     if (tb->cflags & CF_LAST_IO) {
         gen_io_end();
     }
-    if (cs->singlestep_enabled && ctx.bstate != BS_BRANCH) {
-        if (ctx.bstate == BS_NONE) {
-            tcg_gen_movi_tl(cpu_pc, ctx.pc);
-        }
-        gen_helper_raise_exception_debug(cpu_env);
-    } else {
-        switch (ctx.bstate) {
-        case BS_STOP:
-            gen_goto_tb(&ctx, 0, ctx.pc);
-            break;
-        case BS_NONE: /* handle end of page - DO NOT CHAIN. See gen_goto_tb. */
-            tcg_gen_movi_tl(cpu_pc, ctx.pc);
+    switch (ctx.bstate) {
+    case BS_STOP:
+        gen_goto_tb(&ctx, 0, ctx.pc);
+        break;
+    case BS_NONE: /* handle end of page - DO NOT CHAIN. See gen_goto_tb. */
+        tcg_gen_movi_tl(cpu_pc, ctx.pc);
+        if (cs->singlestep_enabled) {
+            gen_exception_debug();
+        } else {
             tcg_gen_exit_tb(0);
-            break;
-        case BS_BRANCH: /* ops using BS_BRANCH generate own exit seq */
-        default:
-            break;
         }
+        break;
+    case BS_BRANCH: /* ops using BS_BRANCH generate own exit seq */
+    default:
+        break;
     }
 done_generating:
     gen_tb_end(tb, num_insns);
