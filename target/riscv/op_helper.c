@@ -73,12 +73,6 @@ void helper_raise_exception(CPURISCVState *env, uint32_t exception)
     do_raise_exception_err(env, exception, 0);
 }
 
-void helper_raise_exception_mbadaddr(CPURISCVState *env, uint32_t exception,
-        target_ulong bad_pc) {
-    env->badaddr = bad_pc;
-    do_raise_exception_err(env, exception, 0);
-}
-
 /*
  * Handle writes to CSRs and any resulting special behavior
  *

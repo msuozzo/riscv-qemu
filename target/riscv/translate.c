@@ -96,8 +96,9 @@ static void generate_exception(DisasContext *ctx, int excp)
 static void generate_exception_mbadaddr(DisasContext *ctx, int excp)
 {
     tcg_gen_movi_tl(cpu_pc, ctx->pc);
+    tcg_gen_st_tl(cpu_pc, cpu_env, offsetof(CPURISCVState, badaddr));
     TCGv_i32 helper_tmp = tcg_const_i32(excp);
-    gen_helper_raise_exception_mbadaddr(cpu_env, helper_tmp, cpu_pc);
+    gen_helper_raise_exception(cpu_env, helper_tmp);
     tcg_temp_free_i32(helper_tmp);
     ctx->bstate = BS_BRANCH;
 }
@@ -112,6 +113,11 @@ static void gen_exception_debug(void)
 static void gen_exception_illegal(DisasContext *ctx)
 {
     generate_exception(ctx, RISCV_EXCP_ILLEGAL_INST);
+}
+
+static void gen_exception_inst_addr_mis(DisasContext *ctx)
+{
+    generate_exception_mbadaddr(ctx, RISCV_EXCP_INST_ADDR_MIS);
 }
 
 static inline bool use_goto_tb(DisasContext *ctx, target_ulong dest)
@@ -521,7 +527,8 @@ static void gen_jal(CPURISCVState *env, DisasContext *ctx, int rd,
     next_pc = ctx->pc + imm;
     if (!riscv_has_ext(env, RVC)) {
         if ((next_pc & 0x3) != 0) {
-            generate_exception_mbadaddr(ctx, RISCV_EXCP_INST_ADDR_MIS);
+            gen_exception_inst_addr_mis(ctx);
+            return;
         }
     }
     if (rd != 0) {
@@ -557,9 +564,7 @@ static void gen_jalr(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
         tcg_gen_exit_tb(0);
 
         gen_set_label(misaligned);
-        generate_exception_mbadaddr(ctx, RISCV_EXCP_INST_ADDR_MIS);
-        tcg_gen_exit_tb(0);
-        ctx->bstate = BS_BRANCH;
+        gen_exception_inst_addr_mis(ctx);
         break;
     default:
         gen_exception_illegal(ctx);
@@ -601,18 +606,17 @@ static void gen_branch(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
         gen_exception_illegal(ctx);
         return;
     }
+    tcg_temp_free(source1);
+    tcg_temp_free(source2);
 
     gen_goto_tb(ctx, 1, ctx->next_pc);
     gen_set_label(l); /* branch taken */
     if (!riscv_has_ext(env, RVC) && ((ctx->pc + bimm) & 0x3)) {
         /* misaligned */
-        generate_exception_mbadaddr(ctx, RISCV_EXCP_INST_ADDR_MIS);
-        tcg_gen_exit_tb(0);
+        gen_exception_inst_addr_mis(ctx);
     } else {
         gen_goto_tb(ctx, 0, ctx->pc + bimm);
     }
-    tcg_temp_free(source1);
-    tcg_temp_free(source2);
     ctx->bstate = BS_BRANCH;
 }
 

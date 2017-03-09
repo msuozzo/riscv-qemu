@@ -1,6 +1,5 @@
 /* Exceptions */
 DEF_HELPER_2(raise_exception, noreturn, env, i32)
-DEF_HELPER_3(raise_exception_mbadaddr, noreturn, env, i32, tl)
 
 /* Floating Point - rounding mode */
 DEF_HELPER_FLAGS_2(set_rounding_mode, TCG_CALL_NO_WG, void, env, i32)
