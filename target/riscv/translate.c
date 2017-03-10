@@ -439,10 +439,11 @@ static void gen_arith(DisasContext *ctx, uint32_t opc, int rd, int rs1,
 static void gen_arith_imm(DisasContext *ctx, uint32_t opc, int rd,
         int rs1, target_long imm)
 {
-    TCGv source1;
-    source1 = tcg_temp_new();
+    TCGv source1 = tcg_temp_new();
+    int shift_len = TARGET_LONG_BITS;
+    int shift_a;
+
     gen_get_gpr(source1, rs1);
-    target_long extra_shamt = 0;
 
     switch (opc) {
     case OPC_RISC_ADDI:
@@ -468,40 +469,37 @@ static void gen_arith_imm(DisasContext *ctx, uint32_t opc, int rd,
         break;
 #if defined(TARGET_RISCV64)
     case OPC_RISC_SLLIW:
-         if ((imm >= 32)) {
-            goto do_illegal;
-            break;
-         }
-        /* fall through to SLLI */
+        shift_len = 32;
+        /* FALLTHRU */
 #endif
     case OPC_RISC_SLLI:
-        if (imm < TARGET_LONG_BITS) {
-            tcg_gen_shli_tl(source1, source1, imm);
-        } else {
+        if (imm >= shift_len) {
             goto do_illegal;
         }
+        tcg_gen_shli_tl(source1, source1, imm);
         break;
 #if defined(TARGET_RISCV64)
     case OPC_RISC_SHIFT_RIGHT_IW:
-        if ((imm & 0x3ff) >= 32) {
-            goto do_illegal;
-        }
-        tcg_gen_shli_tl(source1, source1, 32);
-        extra_shamt = 32;
-        /* fall through to SHIFT_RIGHT_I */
+        shift_len = 32;
+        /* FALLTHRU */
 #endif
     case OPC_RISC_SHIFT_RIGHT_I:
         /* differentiate on IMM */
-        if ((imm & 0x3ff) < TARGET_LONG_BITS) {
-            if (imm & 0x400) {
+        shift_a = imm & 0x400;
+        imm &= 0x3ff;
+        if (imm >= shift_len) {
+            goto do_illegal;
+        }
+        if (imm != 0) {
+            if (shift_a) {
                 /* SRAI[W] */
-                tcg_gen_sari_tl(source1, source1, (imm ^ 0x400) + extra_shamt);
+                tcg_gen_sextract_tl(source1, source1, imm, shift_len - imm);
             } else {
                 /* SRLI[W] */
-                tcg_gen_shri_tl(source1, source1, imm + extra_shamt);
+                tcg_gen_extract_tl(source1, source1, imm, shift_len - imm);
             }
-        } else {
-            goto do_illegal;
+            /* No further sign-extension needed for W instructions.  */
+            opc &= ~0x8;
         }
         break;
     default:
