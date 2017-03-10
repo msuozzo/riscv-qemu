@@ -541,9 +541,8 @@ static void gen_jalr(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
                      int rd, int rs1, target_long imm)
 {
     /* no chaining with JALR */
-    TCGLabel *misaligned = gen_new_label();
-    TCGv t0;
-    t0 = tcg_temp_new();
+    TCGLabel *misaligned = NULL;
+    TCGv t0 = tcg_temp_new();
 
     switch (opc) {
     case OPC_RISC_JALR:
@@ -552,6 +551,7 @@ static void gen_jalr(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
         tcg_gen_andi_tl(cpu_pc, cpu_pc, (target_ulong)-2);
 
         if (!riscv_has_ext(env, RVC)) {
+            misaligned = gen_new_label();
             tcg_gen_andi_tl(t0, cpu_pc, 0x2);
             tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, misaligned);
         }
@@ -561,9 +561,13 @@ static void gen_jalr(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
         }
         tcg_gen_exit_tb(0);
 
-        gen_set_label(misaligned);
-        gen_exception_inst_addr_mis(ctx);
+        if (misaligned) {
+            gen_set_label(misaligned);
+            gen_exception_inst_addr_mis(ctx);
+        }
+        ctx->bstate = BS_BRANCH;
         break;
+
     default:
         gen_exception_illegal(ctx);
         break;
