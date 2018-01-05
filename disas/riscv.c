@@ -1343,8 +1343,9 @@ static const char *csr_name(int csrno)
 
 /* decode opcode */
 
-static rv_opcode decode_inst_op(rv_inst inst, rv_isa isa)
+static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
 {
+    rv_inst inst = dec->inst;
     rv_opcode op = rv_op_illegal;
     switch (((inst >> 0) & 0b11)) {
     case 0:
@@ -1974,7 +1975,7 @@ static rv_opcode decode_inst_op(rv_inst inst, rv_isa isa)
         }
         break;
     }
-    return op;
+    dec->op = op;
 }
 
 /* operand extractors */
@@ -2195,8 +2196,9 @@ static uint32_t operand_cimmq(rv_inst inst) {
 
 /* decode operands */
 
-static void decode_rv_instype(rv_decode *dec, rv_inst inst)
+static void decode_inst_operands(rv_decode *dec)
 {
+    rv_inst inst = dec->inst;
     dec->codec = opcode_data[dec->op].codec;
     switch (dec->codec) {
     case rv_codec_none:
@@ -2476,7 +2478,7 @@ static void decode_rv_instype(rv_decode *dec, rv_inst inst)
 
 /* check constraint */
 
-static bool constraint_check(rv_decode *dec, const rvc_constraint *c)
+static bool check_constraints(rv_decode *dec, const rvc_constraint *c)
 {
     int32_t imm = dec->imm;
     uint8_t rd = dec->rd, rs1 = dec->rs1, rs2 = dec->rs2;
@@ -2752,17 +2754,39 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
     fmt = opcode_data[dec->op].format;
     while (*fmt) {
         switch (*fmt) {
-        case 'O': append(buf, opcode_data[dec->op].name, buflen); break;
-        case '(': append(buf, "(", buflen); break;
-        case ',': append(buf, ",", buflen); break;
-        case ')': append(buf, ")", buflen); break;
-        case '0': append(buf, rv_ireg_name_sym[dec->rd], buflen); break;
-        case '1': append(buf, rv_ireg_name_sym[dec->rs1], buflen); break;
-        case '2': append(buf, rv_ireg_name_sym[dec->rs2], buflen); break;
-        case '3': append(buf, rv_freg_name_sym[dec->rd], buflen); break;
-        case '4': append(buf, rv_freg_name_sym[dec->rs1], buflen); break;
-        case '5': append(buf, rv_freg_name_sym[dec->rs2], buflen); break;
-        case '6': append(buf, rv_freg_name_sym[dec->rs3], buflen); break;
+        case 'O':
+            append(buf, opcode_data[dec->op].name, buflen);
+            break;
+        case '(':
+            append(buf, "(", buflen);
+            break;
+        case ',':
+            append(buf, ",", buflen);
+            break;
+        case ')':
+            append(buf, ")", buflen);
+            break;
+        case '0':
+            append(buf, rv_ireg_name_sym[dec->rd], buflen);
+            break;
+        case '1':
+            append(buf, rv_ireg_name_sym[dec->rs1], buflen);
+            break;
+        case '2':
+            append(buf, rv_ireg_name_sym[dec->rs2], buflen);
+            break;
+        case '3':
+            append(buf, rv_freg_name_sym[dec->rd], buflen);
+            break;
+        case '4':
+            append(buf, rv_freg_name_sym[dec->rs1], buflen);
+            break;
+        case '5':
+            append(buf, rv_freg_name_sym[dec->rs2], buflen);
+            break;
+        case '6':
+            append(buf, rv_freg_name_sym[dec->rs3], buflen);
+            break;
         case '7':
             snprintf(tmp, sizeof(tmp), "%d", dec->rs1);
             append(buf, tmp, buflen);
@@ -2793,13 +2817,27 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
         }
         case 'r':
             switch (dec->rm) {
-            case rv_rm_rne: append(buf, "rne", buflen); break;
-            case rv_rm_rtz: append(buf, "rtz", buflen); break;
-            case rv_rm_rdn: append(buf, "rdn", buflen); break;
-            case rv_rm_rup: append(buf, "rup", buflen); break;
-            case rv_rm_rmm: append(buf, "rmm", buflen); break;
-            case rv_rm_dyn: append(buf, "dyn", buflen); break;
-            default:        append(buf, "inv", buflen); break;
+            case rv_rm_rne:
+                append(buf, "rne", buflen);
+                break;
+            case rv_rm_rtz:
+                append(buf, "rtz", buflen);
+                break;
+            case rv_rm_rdn:
+                append(buf, "rdn", buflen);
+                break;
+            case rv_rm_rup:
+                append(buf, "rup", buflen);
+                break;
+            case rv_rm_rmm:
+                append(buf, "rmm", buflen);
+                break;
+            case rv_rm_dyn:
+                append(buf, "dyn", buflen);
+                break;
+            default:
+                append(buf, "inv", buflen);
+                break;
             }
             break;
         case 'p':
@@ -2852,16 +2890,16 @@ static void format_inst(char *buf, size_t buflen, size_t tab, rv_decode *dec)
     }
 }
 
-/* decode instruction to pseudo-instruction */
+/* lift instruction to pseudo-instruction */
 
-static void decode_pseudo_inst(rv_decode *dec)
+static void decode_inst_lift_pseudo(rv_decode *dec)
 {
     const rv_comp_data *comp_data = opcode_data[dec->op].pseudo;
     if (!comp_data) {
         return;
     }
     while (comp_data->constraints) {
-        if (constraint_check(dec, comp_data->constraints)) {
+        if (check_constraints(dec, comp_data->constraints)) {
             dec->op = comp_data->op;
             dec->codec = opcode_data[dec->op].codec;
             return;
@@ -2872,7 +2910,7 @@ static void decode_pseudo_inst(rv_decode *dec)
 
 /* decompress instruction */
 
-static void decompress_inst_rv32(rv_decode *dec)
+static void decode_inst_decompress_rv32(rv_decode *dec)
 {
     int decomp_op = opcode_data[dec->op].decomp_rv32;
     if (decomp_op != rv_op_illegal) {
@@ -2881,7 +2919,7 @@ static void decompress_inst_rv32(rv_decode *dec)
     }
 }
 
-static void decompress_inst_rv64(rv_decode *dec)
+static void decode_inst_decompress_rv64(rv_decode *dec)
 {
     int decomp_op = opcode_data[dec->op].decomp_rv64;
     if (decomp_op != rv_op_illegal) {
@@ -2890,12 +2928,21 @@ static void decompress_inst_rv64(rv_decode *dec)
     }
 }
 
-static void decompress_inst_rv128(rv_decode *dec)
+static void decode_inst_decompress_rv128(rv_decode *dec)
 {
     int decomp_op = opcode_data[dec->op].decomp_rv128;
     if (decomp_op != rv_op_illegal) {
         dec->op = decomp_op;
         dec->codec = opcode_data[decomp_op].codec;
+    }
+}
+
+static void decode_inst_decompress(rv_decode *dec, rv_isa isa)
+{
+    switch (isa) {
+    case rv32: decode_inst_decompress_rv32(dec); break;
+    case rv64: decode_inst_decompress_rv64(dec); break;
+    case rv128: decode_inst_decompress_rv128(dec); break;
     }
 }
 
@@ -2907,14 +2954,10 @@ disasm_inst(char *buf, size_t buflen, rv_isa isa, uint64_t pc, rv_inst inst)
     rv_decode dec = { 0 };
     dec.pc = pc;
     dec.inst = inst;
-    dec.op = decode_inst_op(inst, isa);
-    decode_rv_instype(&dec, inst);
-    switch (isa) {
-    case rv32: decompress_inst_rv32(&dec); break;
-    case rv64: decompress_inst_rv64(&dec); break;
-    case rv128: decompress_inst_rv128(&dec); break;
-    }
-    decode_pseudo_inst(&dec);
+    decode_inst_opcode(&dec, isa);
+    decode_inst_operands(&dec);
+    decode_inst_decompress(&dec, isa);
+    decode_inst_lift_pseudo(&dec);
     format_inst(buf, buflen, 16, &dec);
 }
 
@@ -2945,9 +2988,7 @@ print_insn_riscv(bfd_vma memaddr, struct disassemble_info *info, rv_isa isa)
         }
     }
 
-    /* TODO - need access to TARGET_RISCV32 or TARGET_RISCV64 */
     disasm_inst(buf, sizeof(buf), isa, memaddr, inst);
-
     (*info->fprintf_func)(info->stream, "%s", buf);
 
     return len;
