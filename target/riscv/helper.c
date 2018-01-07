@@ -434,12 +434,6 @@ void riscv_cpu_do_interrupt(CPUState *cs)
     }
     #endif
 
-    if (cs->exception_index == RISCV_EXCP_BREAKPOINT) {
-        fprintf(stderr, "debug mode not implemented\n");
-    }
-
-    /* skip dcsr cause check */
-
     target_ulong fixed_cause = 0;
     if (cs->exception_index & (0x70000000)) {
         /* hacky for now. the MSB (bit 63) indicates interrupt but cs->exception
