@@ -154,7 +154,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
         case VM_1_10_SV57:
           levels = 5; ptidxbits = 9; ptesize = 8; break;
         case VM_1_10_MBARE:
-          /* S-Mode bare not implemented */
+          /* cpu_mmu_index returns PRV_M for S-Mode bare */
         default:
           g_assert_not_reached();
         }
@@ -170,7 +170,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
         case VM_1_09_SV48:
           levels = 4; ptidxbits = 9; ptesize = 8; break;
         case VM_1_09_MBARE:
-          /* S-Mode bare not implemented */
+          /* cpu_mmu_index returns PRV_M for S-Mode bare */
         default:
           g_assert_not_reached();
         }
@@ -228,8 +228,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
                 } else if ((pte & PTE_R) && access_type == MMU_DATA_LOAD) {
                     *prot |= PAGE_READ;
                 } else {
-                    printf("err in translation prots");
-                    exit(1);
+                    g_assert_not_reached();
                 }
             } else {
                 if ((pte & PTE_X) && access_type == MMU_INST_FETCH) {
@@ -239,8 +238,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
                 } else if ((pte & PTE_R) && access_type == MMU_DATA_LOAD) {
                     *prot |= PAGE_READ;
                 } else {
-                    printf("err in translation prots");
-                    exit(1);
+                    g_assert_not_reached();
                 }
             }
             return TRANSLATE_SUCCESS;
