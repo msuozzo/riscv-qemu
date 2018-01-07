@@ -60,30 +60,10 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
      * correct, but the value visible to the exception handler
      * (riscv_cpu_do_interrupt) is correct */
 
+    const int mode = mmu_idx;
+
     *prot = 0;
     CPUState *cs = CPU(riscv_env_get_cpu(env));
-
-    target_ulong mode = env->priv;
-    if (access_type != MMU_INST_FETCH) {
-        if (get_field(env->mstatus, MSTATUS_MPRV)) {
-            mode = get_field(env->mstatus, MSTATUS_MPP);
-        }
-    }
-    if (env->priv_ver >= PRIV_VERSION_1_10_0) {
-        if (get_field(env->satp, SATP_MODE) == VM_1_09_MBARE) {
-            mode = PRV_M;
-        }
-    } else {
-        if (get_field(env->mstatus, MSTATUS_VM) == VM_1_10_MBARE) {
-            mode = PRV_M;
-        }
-    }
-
-    /* check to make sure that mmu_idx and mode that we get matches */
-    if (unlikely(mode != mmu_idx)) {
-        fprintf(stderr, "MODE: mmu_idx mismatch\n");
-        exit(1);
-    }
 
     if (mode == PRV_M) {
         target_ulong msb_mask = /*0x7FFFFFFFFFFFFFFF; */
