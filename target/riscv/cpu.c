@@ -254,14 +254,13 @@ static void riscv_cpu_class_init(ObjectClass *c, void *data)
 static void cpu_register(const RISCVCPUInfo *info)
 {
     TypeInfo type_info = {
-        .name = g_strdup(info->name),
+        .name = info->name,
         .parent = TYPE_RISCV_CPU,
         .instance_size = sizeof(RISCVCPU),
         .instance_init = info->initfn,
     };
 
     type_register(&type_info);
-    g_free((void *)type_info.name);
 }
 
 static const TypeInfo riscv_cpu_type_info = {
