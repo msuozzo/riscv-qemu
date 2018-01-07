@@ -166,7 +166,7 @@ struct CPURISCVState {
     CPU_COMMON
 
     /* Fields from here on are preserved across CPU reset. */
-    void *irq[8];
+    qemu_irq irq[8];
     QEMUTimer *timer; /* Internal timer */
 };
 
