@@ -247,46 +247,17 @@ void riscv_cpu_unassigned_access(CPUState *cpu, hwaddr addr, bool is_write,
 
 char *riscv_isa_string(RISCVCPU *cpu);
 void riscv_cpu_list(FILE *f, fprintf_function cpu_fprintf);
+int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch);
 
 #define cpu_init(cpu_model) cpu_generic_init(TYPE_RISCV_CPU, cpu_model)
 #define cpu_signal_handler cpu_riscv_signal_handler
 #define cpu_list riscv_cpu_list
+#define cpu_mmu_index riscv_cpu_mmu_index
 
 void set_privilege(CPURISCVState *env, target_ulong newpriv);
 unsigned int softfloat_flags_to_riscv(unsigned int flag);
 uint_fast16_t float32_classify(uint32_t a, float_status *status);
 uint_fast16_t float64_classify(uint64_t a, float_status *status);
-
-/*
- * Compute mmu index
- * Adapted from Spike's mmu_t::translate
- */
-#ifdef CONFIG_USER_ONLY
-static inline int cpu_mmu_index(CPURISCVState *env, bool ifetch)
-{
-    return 0;
-}
-#else
-static inline int cpu_mmu_index(CPURISCVState *env, bool ifetch)
-{
-    target_ulong mode = env->priv;
-    if (!ifetch) {
-        if (get_field(env->mstatus, MSTATUS_MPRV)) {
-            mode = get_field(env->mstatus, MSTATUS_MPP);
-        }
-    }
-    if (env->priv_ver >= PRIV_VERSION_1_10_0) {
-        if (get_field(env->satp, SATP_MODE) == VM_1_10_MBARE) {
-            mode = PRV_M;
-        }
-    } else {
-        if (get_field(env->mstatus, MSTATUS_VM) == VM_1_09_MBARE) {
-            mode = PRV_M;
-        }
-    }
-    return mode;
-}
-#endif
 
 #include "exec/cpu-all.h"
 

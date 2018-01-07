@@ -25,6 +25,29 @@
 
 /*#define RISCV_DEBUG_INTERRUPT */
 
+int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch)
+{
+#ifdef CONFIG_USER_ONLY
+    return 0;
+#else
+    target_ulong mode = env->priv;
+    if (!ifetch) {
+        if (get_field(env->mstatus, MSTATUS_MPRV)) {
+            mode = get_field(env->mstatus, MSTATUS_MPP);
+        }
+    }
+    if (env->priv_ver >= PRIV_VERSION_1_10_0) {
+        if (get_field(env->satp, SATP_MODE) == VM_1_10_MBARE) {
+            mode = PRV_M;
+        }
+    } else {
+        if (get_field(env->mstatus, MSTATUS_VM) == VM_1_09_MBARE) {
+            mode = PRV_M;
+        }
+    }
+    return mode;
+#endif
+}
 
 #ifndef CONFIG_USER_ONLY
 /*
