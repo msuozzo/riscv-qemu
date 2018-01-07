@@ -128,17 +128,10 @@ static void riscv_cpu_synchronize_from_tb(CPUState *cs, TranslationBlock *tb)
     env->pc = tb->pc;
 }
 
-#ifdef CONFIG_USER_ONLY
-static bool riscv_cpu_has_work(CPUState *cs)
-{
-    return 0;
-}
-#else
 static bool riscv_cpu_has_work(CPUState *cs)
 {
     return cs->interrupt_request & CPU_INTERRUPT_HARD;
 }
-#endif
 
 void restore_state_to_opc(CPURISCVState *env, TranslationBlock *tb,
                           target_ulong *data)
