@@ -25,13 +25,53 @@
 
 /*#define RISCV_DEBUG_INTERRUPT */
 
+
+#ifndef CONFIG_USER_ONLY
+/*
+ * Return RISC-V IRQ number if an interrupt should be taken, else -1.
+ * Used in cpu-exec.c
+ *
+ * Adapted from Spike's processor_t::take_interrupt()
+ */
+static int riscv_cpu_hw_interrupts_pending(CPURISCVState *env)
+{
+    target_ulong pending_interrupts = env->mip & env->mie;
+
+    target_ulong mie = get_field(env->mstatus, MSTATUS_MIE);
+    target_ulong m_enabled = env->priv < PRV_M || (env->priv == PRV_M && mie);
+    target_ulong enabled_interrupts = pending_interrupts &
+                                      ~env->mideleg & -m_enabled;
+
+    target_ulong sie = get_field(env->mstatus, MSTATUS_SIE);
+    target_ulong s_enabled = env->priv < PRV_S || (env->priv == PRV_S && sie);
+    enabled_interrupts |= pending_interrupts & env->mideleg &
+                          -s_enabled;
+
+    if (enabled_interrupts) {
+        target_ulong counted = ctz64(enabled_interrupts); /* since non-zero */
+        if (counted == IRQ_X_HOST) {
+            /* we're handing it to the cpu now, so get rid of the qemu irq */
+            qemu_irq_lower(HTIF_IRQ);
+        } else if (counted == IRQ_M_TIMER) {
+            /* we're handing it to the cpu now, so get rid of the qemu irq */
+            qemu_irq_lower(MTIP_IRQ);
+        } else if (counted == IRQ_S_TIMER || counted == IRQ_H_TIMER) {
+            /* don't lower irq here */
+        }
+        return counted;
+    } else {
+        return EXCP_NONE; /* indicates no pending interrupt */
+    }
+}
+#endif
+
 bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
 {
 #if !defined(CONFIG_USER_ONLY)
     if (interrupt_request & CPU_INTERRUPT_HARD) {
         RISCVCPU *cpu = RISCV_CPU(cs);
         CPURISCVState *env = &cpu->env;
-        int interruptno = cpu_riscv_hw_interrupts_pending(env);
+        int interruptno = riscv_cpu_hw_interrupts_pending(env);
         if (interruptno + 1) {
             cs->exception_index = 0x70000000U | interruptno;
             riscv_cpu_do_interrupt(cs);
