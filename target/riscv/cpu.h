@@ -13,7 +13,6 @@
 #define TARGET_VIRT_ADDR_SPACE_BITS 32
 #endif
 
-#define TARGET_HAS_ICE 1
 #define ELF_MACHINE EM_RISCV
 #define CPUArchState struct CPURISCVState
 
