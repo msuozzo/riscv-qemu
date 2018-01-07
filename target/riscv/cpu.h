@@ -94,7 +94,7 @@ typedef struct CPURISCVState CPURISCVState;
 
 #include "pmp.h"
 
-typedef struct CPURISCVState {
+struct CPURISCVState {
     target_ulong gpr[32];
     uint64_t fpr[32]; /* assume both F and D extensions */
     target_ulong pc;
@@ -168,7 +168,7 @@ typedef struct CPURISCVState {
     /* Fields from here on are preserved across CPU reset. */
     void *irq[8];
     QEMUTimer *timer; /* Internal timer */
-} CPURISCVState;
+};
 
 #define RISCV_CPU_CLASS(klass) \
     OBJECT_CLASS_CHECK(RISCVCPUClass, (klass), TYPE_RISCV_CPU)
