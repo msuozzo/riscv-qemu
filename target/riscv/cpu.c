@@ -147,7 +147,6 @@ static void riscv_cpu_reset(CPUState *cs)
 
     mcc->parent_reset(cs);
 #ifndef CONFIG_USER_ONLY
-    tlb_flush(cs);
     env->priv = PRV_M;
     env->mtvec = DEFAULT_MTVEC;
 #endif
