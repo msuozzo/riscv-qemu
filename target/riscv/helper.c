@@ -155,9 +155,10 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
           levels = 4; ptidxbits = 9; ptesize = 8; break;
         case VM_1_10_SV57:
           levels = 5; ptidxbits = 9; ptesize = 8; break;
+        case VM_1_10_MBARE:
+          /* S-Mode bare not implemented */
         default:
-          printf("unsupported SATP_MODE value\n");
-          exit(1);
+          g_assert_not_reached();
         }
     } else {
         base = env->sptbr << PGSHIFT;
@@ -170,9 +171,10 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
           levels = 3; ptidxbits = 9; ptesize = 8; break;
         case VM_1_09_SV48:
           levels = 4; ptidxbits = 9; ptesize = 8; break;
+        case VM_1_09_MBARE:
+          /* S-Mode bare not implemented */
         default:
-          printf("unsupported MSTATUS_VM value\n");
-          exit(1);
+          g_assert_not_reached();
         }
     }
 
