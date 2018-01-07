@@ -129,9 +129,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
     CPUState *cs = CPU(riscv_env_get_cpu(env));
 
     if (mode == PRV_M) {
-        target_ulong msb_mask = /*0x7FFFFFFFFFFFFFFF; */
-            (((target_ulong)2) << (TARGET_LONG_BITS - 1)) - 1;
-        *physical = address & msb_mask;
+        *physical = address;
         *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
         return TRANSLATE_SUCCESS;
     }
