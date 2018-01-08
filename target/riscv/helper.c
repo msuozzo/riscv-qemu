@@ -327,10 +327,13 @@ void riscv_cpu_unassigned_access(CPUState *cs, hwaddr addr, bool is_write,
     CPURISCVState *env = &cpu->env;
     if (is_exec) {
         cs->exception_index = RISCV_EXCP_INST_ACCESS_FAULT;
+        env->badaddr = addr;
     } else if (is_write) {
         cs->exception_index = RISCV_EXCP_STORE_AMO_ACCESS_FAULT;
+        env->badaddr = addr;
     } else {
         cs->exception_index = RISCV_EXCP_LOAD_ACCESS_FAULT;
+        env->badaddr = addr;
     }
     qemu_log_mask(LOG_GUEST_ERROR, "cpu_unassigned_access: %016" PRIx64 "\n",
         addr);
