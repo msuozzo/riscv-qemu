@@ -293,9 +293,8 @@ void riscv_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
     if (access_type == MMU_INST_FETCH) {
-        fprintf(stderr, "unaligned inst fetch not handled here. should not "
-                "trigger\n");
-        exit(1);
+        cs->exception_index = RISCV_EXCP_INST_ADDR_MIS;
+        env->badaddr = addr;
     } else if (access_type == MMU_DATA_STORE) {
         cs->exception_index = RISCV_EXCP_STORE_AMO_ADDR_MIS;
         env->badaddr = addr;
