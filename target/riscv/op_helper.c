@@ -22,7 +22,6 @@
 #include "qemu/log.h"
 #include "cpu.h"
 #include "qemu/main-loop.h"
-#include "qemu/error-report.h"
 #include "exec/exec-all.h"
 #include "exec/helper-proto.h"
 
@@ -208,20 +207,20 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         break;
     }
     case CSR_MINSTRET:
-        error_report("CSR_MINSTRET: write not implemented");
-        exit(1);
+        qemu_log_mask(LOG_UNIMP, "CSR_MINSTRET: write not implemented");
+        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
         break;
     case CSR_MCYCLE:
-        error_report("CSR_MCYCLE: write not implemented");
-        exit(1);
+        qemu_log_mask(LOG_UNIMP, "CSR_MCYCLE: write not implemented");
+        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
         break;
     case CSR_MINSTRETH:
-        error_report("CSR_MINSTRETH: write not implemented");
-        exit(1);
+        qemu_log_mask(LOG_UNIMP, "CSR_MINSTRETH: write not implemented");
+        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
         break;
     case CSR_MCYCLEH:
-        error_report("CSR_MCYCLEH: write not implemented");
-        exit(1);
+        qemu_log_mask(LOG_UNIMP, "CSR_MCYCLEH: write not implemented");
+        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
         break;
     case CSR_MUCOUNTEREN:
         env->mucounteren = val_to_write;
@@ -271,10 +270,11 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         break;
     case CSR_STVEC:
         if (val_to_write & 1) {
-            error_report("CSR_STVEC: vectored interrupts not implemented");
-            exit(1);
+            qemu_log_mask(LOG_UNIMP, "CSR_STVEC: vectored traps not supported");
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        } else {
+            env->stvec = val_to_write >> 2 << 2;
         }
-        env->stvec = val_to_write >> 2 << 2;
         break;
     case CSR_SCOUNTEREN:
         env->scounteren = val_to_write;
@@ -293,10 +293,11 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         break;
     case CSR_MTVEC:
         if (val_to_write & 1) {
-            error_report("CSR_MTVEC: vectored interrupts not implemented");
-            exit(1);
+            qemu_log_mask(LOG_UNIMP, "CSR_MTVEC: vectored traps not supported");
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        } else {
+            env->mtvec = val_to_write >> 2 << 2;
         }
-        env->mtvec = val_to_write >> 2 << 2;
         break;
     case CSR_MCOUNTEREN:
         env->mcounteren = val_to_write;
@@ -327,21 +328,6 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         env->misa = (val_to_write & mask) | (env->misa & ~mask);
         break;
     }
-    case CSR_TSELECT:
-        /* TSELECT is hardwired in this implementation */
-        break;
-    case CSR_TDATA1:
-        error_report("CSR_TDATA1: write not implemented");
-        exit(1);
-        break;
-    case CSR_TDATA2:
-        error_report("CSR_TDATA2: write not implemented");
-        exit(1);
-        break;
-    case CSR_DCSR:
-        error_report("CSR_DCSR: write not implementedn");
-        exit(1);
-        break;
     case CSR_PMPCFG0:
     case CSR_PMPCFG1:
     case CSR_PMPCFG2:
@@ -520,25 +506,6 @@ inline target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
         return env->medeleg;
     case CSR_MIDELEG:
         return env->mideleg;
-    case CSR_TSELECT:
-        /* indicate only usable in debug mode (which we don't support) */
-        return 1L << (TARGET_LONG_BITS - 5);
-    case CSR_TDATA1:
-        printf("CSR_TDATA1 read not implemented.\n");
-        exit(1);
-        break;
-    case CSR_TDATA2:
-        printf("CSR_TDATA2 read not implemented.\n");
-        exit(1);
-        break;
-    case CSR_TDATA3:
-        printf("CSR_TDATA3 read not implemented.\n");
-        exit(1);
-        break;
-    case CSR_DCSR:
-        printf("CSR_DCSR read not implemented.\n");
-        exit(1);
-        break;
     case CSR_PMPCFG0:
     case CSR_PMPCFG1:
     case CSR_PMPCFG2:
