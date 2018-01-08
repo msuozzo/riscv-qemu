@@ -323,10 +323,18 @@ void tlb_fill(CPUState *cs, target_ulong addr, MMUAccessType access_type,
 void riscv_cpu_unassigned_access(CPUState *cs, hwaddr addr, bool is_write,
         bool is_exec, int unused, unsigned size)
 {
-    printf("unassigned address not implemented for riscv\n");
-    printf("are you trying to fetch instructions from an MMIO page?\n");
-    printf("unassigned Address: %016" PRIx64 "\n", addr);
-    exit(1);
+    RISCVCPU *cpu = RISCV_CPU(cs);
+    CPURISCVState *env = &cpu->env;
+    if (is_exec) {
+        cs->exception_index = RISCV_EXCP_INST_ACCESS_FAULT;
+    } else if (is_write) {
+        cs->exception_index = RISCV_EXCP_STORE_AMO_ACCESS_FAULT;
+    } else {
+        cs->exception_index = RISCV_EXCP_LOAD_ACCESS_FAULT;
+    }
+    qemu_log_mask(LOG_GUEST_ERROR, "cpu_unassigned_access: %016" PRIx64 "\n",
+        addr);
+    do_raise_exception_err(env, cs->exception_index, env->pc);
 }
 
 #endif
