@@ -268,8 +268,7 @@ static void raise_mmu_exception(CPURISCVState *env, target_ulong address,
             RISCV_EXCP_LOAD_PAGE_FAULT : RISCV_EXCP_LOAD_ACCESS_FAULT;
         env->badaddr = address;
     } else {
-        fprintf(stderr, "FAIL: invalid access_type\n");
-        exit(1);
+        g_assert_not_reached();
     }
     cs->exception_index = exception;
 }
@@ -304,8 +303,7 @@ void riscv_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
         cs->exception_index = RISCV_EXCP_LOAD_ADDR_MIS;
         env->badaddr = addr;
     } else {
-        fprintf(stderr, "Invalid MMUAccessType\n");
-        exit(1);
+        g_assert_not_reached();
     }
     do_raise_exception_err(env, cs->exception_index, retaddr);
 }
