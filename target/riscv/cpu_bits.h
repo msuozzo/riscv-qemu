@@ -402,18 +402,6 @@
 #define RISCV_EXCP_LOAD_PAGE_FAULT         0xd /* since: priv-1.10.0 */
 #define RISCV_EXCP_STORE_PAGE_FAULT        0xf /* since: priv-1.10.0 */
 
-/* breakpoint control fields */
-#define BPCONTROL_X           0x00000001
-#define BPCONTROL_W           0x00000002
-#define BPCONTROL_R           0x00000004
-#define BPCONTROL_U           0x00000008
-#define BPCONTROL_S           0x00000010
-#define BPCONTROL_H           0x00000020
-#define BPCONTROL_M           0x00000040
-#define BPCONTROL_BPMATCH     0x00000780
-#define BPCONTROL_BPAMASKMAX  0x0F80000000000000ULL
-#define BPCONTROL_TDRTYPE     0xF000000000000000ULL
-
 /* page table entry (PTE) fields */
 #define PTE_V     0x001 /* Valid */
 #define PTE_R     0x002 /* Read */
