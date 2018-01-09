@@ -144,14 +144,12 @@ static void htif_handle_tohost_write(HTIFState *htifstate, uint64_t val_written)
             fprintf(stderr, "frontend syscall handler\n");
             #endif
             if (payload & 0x1) {
-                /* test result */
-                if (payload >> 1) {
-                    printf("*** FAILED *** (exitcode = %016" PRIx64 ")\n",
-                           payload >> 1);
-                } else {
-                    printf("TEST PASSED\n");
+                /* exit code */
+                int exit_code = payload >> 1;
+                if (exit_code) {
+                    printf("*** FAILED *** (tohost = %d)\n", exit_code);
                 }
-                exit(payload >> 1);
+                exit(exit_code);
             }
             fprintf(stderr, "pk syscall proxy not supported\n");
         } else if (cmd == 0xFF) {
