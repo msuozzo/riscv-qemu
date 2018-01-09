@@ -104,23 +104,26 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
 
     switch (csrno) {
     case CSR_FFLAGS:
-#ifndef CONFIG_USER_ONLY
-        env->mstatus |= MSTATUS_FS | MSTATUS64_SD;
-#endif
-        env->fflags = val_to_write & (FSR_AEXC >> FSR_AEXC_SHIFT);
+        if (riscv_mstatus_fs(env)) {
+            env->fflags = val_to_write & (FSR_AEXC >> FSR_AEXC_SHIFT);
+        } else {
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        }
         break;
     case CSR_FRM:
-#ifndef CONFIG_USER_ONLY
-        env->mstatus |= MSTATUS_FS | MSTATUS64_SD;
-#endif
-        env->frm = val_to_write & (FSR_RD >> FSR_RD_SHIFT);
+        if (riscv_mstatus_fs(env)) {
+            env->frm = val_to_write & (FSR_RD >> FSR_RD_SHIFT);
+        } else {
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        }
         break;
     case CSR_FCSR:
-#ifndef CONFIG_USER_ONLY
-        env->mstatus |= MSTATUS_FS | MSTATUS64_SD;
-#endif
-        env->fflags = (val_to_write & FSR_AEXC) >> FSR_AEXC_SHIFT;
-        env->frm = (val_to_write & FSR_RD) >> FSR_RD_SHIFT;
+        if (riscv_mstatus_fs(env)) {
+            env->fflags = (val_to_write & FSR_AEXC) >> FSR_AEXC_SHIFT;
+            env->frm = (val_to_write & FSR_RD) >> FSR_RD_SHIFT;
+        } else {
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        }
         break;
 #ifndef CONFIG_USER_ONLY
     case CSR_MSTATUS: {
@@ -149,7 +152,7 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         mstatus = (mstatus & ~mask) | (val_to_write & mask);
         int dirty = (mstatus & MSTATUS_FS) == MSTATUS_FS;
         dirty |= (mstatus & MSTATUS_XS) == MSTATUS_XS;
-        mstatus = set_field(mstatus, MSTATUS64_SD, dirty);
+        mstatus = set_field(mstatus, MSTATUS_SD, dirty);
         env->mstatus = mstatus;
         break;
     }
@@ -400,12 +403,23 @@ inline target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
 
     switch (csrno) {
     case CSR_FFLAGS:
-        return env->fflags;
+        if (riscv_mstatus_fs(env)) {
+            return env->fflags;
+        } else {
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        }
     case CSR_FRM:
-        return env->frm;
+        if (riscv_mstatus_fs(env)) {
+            return env->frm;
+        } else {
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        }
     case CSR_FCSR:
-        return env->fflags << FSR_AEXC_SHIFT |
-               env->frm << FSR_RD_SHIFT;
+        if (riscv_mstatus_fs(env)) {
+            return env->fflags << FSR_AEXC_SHIFT | env->frm << FSR_RD_SHIFT;
+        } else {
+            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        }
 #ifdef CONFIG_USER_ONLY
     case CSR_TIME:
     case CSR_CYCLE:
