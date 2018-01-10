@@ -35,17 +35,15 @@
 #include "cpu.h"
 #include "qemu-common.h"
 
-/* #define RISCV_DEBUG_PMP */
-
 #ifndef CONFIG_USER_ONLY
 
-#ifdef RISCV_DEBUG_PMP
-#define PMP_DEBUG(fmt, ...) \
-do { qemu_log_mask(LOG_TRACE, "pmp: " fmt, ## __VA_ARGS__); } while (0)
-#else
-#define PMP_DEBUG(fmt, ...) \
-do {} while (0)
-#endif
+#define RISCV_DEBUG_PMP 0
+#define PMP_DEBUG(fmt, ...)                                          \
+  do {                                                               \
+    if (RISCV_DEBUG_PMP) {                                           \
+      qemu_log_mask(LOG_TRACE, "%s: " fmt, __func__, ##__VA_ARGS__); \
+    }                                                                \
+  } while (0)
 
 static void pmp_write_cfg(CPURISCVState *env, uint32_t addr_index,
     uint8_t val);
@@ -121,10 +119,10 @@ static void pmp_write_cfg(CPURISCVState *env, uint32_t pmp_index, uint8_t val)
             env->pmp_state.pmp[pmp_index].cfg_reg = val;
             pmp_update_rule(env, pmp_index);
         } else {
-            PMP_DEBUG("%s: ignoring write - locked", __func__);
+            PMP_DEBUG("ignoring write - locked");
         }
     } else {
-        PMP_DEBUG("%s: ignoring write - out of bounds", __func__);
+        PMP_DEBUG("ignoring write - out of bounds");
     }
 }
 
@@ -257,8 +255,7 @@ bool pmp_hart_has_privs(CPURISCVState *env, target_ulong addr,
 
         /* partially inside */
         if ((s + e) == 1) {
-            PMP_DEBUG("%s: pmp violation - access is partially in /"
-                " partially out", __func__);
+            PMP_DEBUG("pmp violation - access is partially inside");
             ret = 0;
             break;
         }
@@ -311,11 +308,11 @@ void pmpcfg_csr_write(CPURISCVState *env, uint32_t reg_index,
     int i;
     uint8_t cfg_val;
 
-    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": reg%d, val: 0x" TARGET_FMT_lx,
-        __func__, env->mhartid, reg_index, val);
+    PMP_DEBUG("hart " TARGET_FMT_ld ": reg%d, val: 0x" TARGET_FMT_lx,
+        env->mhartid, reg_index, val);
 
     if ((reg_index & 1) && (sizeof(target_ulong) == 8)) {
-        PMP_DEBUG("%s: ignoring write - incorrect address", __func__);
+        PMP_DEBUG("ignoring write - incorrect address");
         return;
     }
 
@@ -341,8 +338,8 @@ target_ulong pmpcfg_csr_read(CPURISCVState *env, uint32_t reg_index)
         cfg_val |= (val << (i * 8));
     }
 
-    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": reg%d, val: 0x" TARGET_FMT_lx,
-        __func__, env->mhartid, reg_index, cfg_val);
+    PMP_DEBUG("hart " TARGET_FMT_ld ": reg%d, val: 0x" TARGET_FMT_lx,
+        env->mhartid, reg_index, cfg_val);
 
     return cfg_val;
 }
@@ -354,18 +351,18 @@ target_ulong pmpcfg_csr_read(CPURISCVState *env, uint32_t reg_index)
 void pmpaddr_csr_write(CPURISCVState *env, uint32_t addr_index,
     target_ulong val)
 {
-    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": addr%d, val: 0x" TARGET_FMT_lx,
-        __func__, env->mhartid, addr_index, val);
+    PMP_DEBUG("hart " TARGET_FMT_ld ": addr%d, val: 0x" TARGET_FMT_lx,
+        env->mhartid, addr_index, val);
 
     if (addr_index < MAX_RISCV_PMPS) {
         if (!pmp_is_locked(env, addr_index)) {
             env->pmp_state.pmp[addr_index].addr_reg = val;
             pmp_update_rule(env, addr_index);
         } else {
-            PMP_DEBUG("%s: ignoring write - locked", __func__);
+            PMP_DEBUG("ignoring write - locked");
         }
     } else {
-        PMP_DEBUG("%s: ignoring write - out of bounds", __func__);
+        PMP_DEBUG("ignoring write - out of bounds");
     }
 }
 
@@ -375,13 +372,13 @@ void pmpaddr_csr_write(CPURISCVState *env, uint32_t addr_index,
  */
 target_ulong pmpaddr_csr_read(CPURISCVState *env, uint32_t addr_index)
 {
-    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": addr%d, val: 0x" TARGET_FMT_lx,
-        __func__, env->mhartid, addr_index,
+    PMP_DEBUG("hart " TARGET_FMT_ld ": addr%d, val: 0x" TARGET_FMT_lx,
+        env->mhartid, addr_index,
         env->pmp_state.pmp[addr_index].addr_reg);
     if (addr_index < MAX_RISCV_PMPS) {
         return env->pmp_state.pmp[addr_index].addr_reg;
     } else {
-        PMP_DEBUG("%s: ignoring read - out of bounds", __func__);
+        PMP_DEBUG("ignoring read - out of bounds");
         return 0;
     }
 }
