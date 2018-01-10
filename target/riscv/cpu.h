@@ -228,8 +228,6 @@ unsigned int softfloat_flags_to_riscv(unsigned int flag);
 uint_fast16_t float32_classify(uint32_t a, float_status *status);
 uint_fast16_t float64_classify(uint64_t a, float_status *status);
 
-#include "exec/cpu-all.h"
-
 void riscv_translate_init(void);
 RISCVCPU *cpu_riscv_init(const char *cpu_model);
 int cpu_riscv_signal_handler(int host_signum, void *pinfo, void *puc);
@@ -269,5 +267,7 @@ void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
 target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno);
 
 void validate_csr(CPURISCVState *env, uint64_t which, uint64_t write);
+
+#include "exec/cpu-all.h"
 
 #endif /* RISCV_CPU_H */
