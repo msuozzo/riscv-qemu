@@ -93,8 +93,8 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         target_ulong csrno)
 {
     #ifdef RISCV_DEBUG_PRINT
-    fprintf(stderr, "Write CSR reg: 0x" TARGET_FMT_lx "\n", csrno);
-    fprintf(stderr, "Write CSR val: 0x" TARGET_FMT_lx "\n", val_to_write);
+    qemu_log_mask(LOG_TRACE, "Write CSR reg: 0x" TARGET_FMT_lx, csrno);
+    qemu_log_mask(LOG_TRACE, "Write CSR val: 0x" TARGET_FMT_lx, val_to_write);
     #endif
 
 #ifndef CONFIG_USER_ONLY
@@ -369,8 +369,9 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
 inline target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
 {
     #ifdef RISCV_DEBUG_PRINT
-    fprintf(stderr, "READ CSR 0x%x\n", csrno);
+    qemu_log_mask(LOG_TRACE, "Read CSR reg: 0x" TARGET_FMT_lx, csrno);
     #endif
+
 #ifndef CONFIG_USER_ONLY
     target_ulong ctr_en = env->priv == PRV_U ? env->mucounteren :
                    env->priv == PRV_S ? env->mscounteren : -1U;
