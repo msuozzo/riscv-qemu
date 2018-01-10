@@ -3665,15 +3665,9 @@ void cpu_loop(CPURISCVState *env)
         case RISCV_EXCP_U_ECALL:
             env->pc += 4;
             if (env->gpr[xA7] == TARGET_NR_arch_specific_syscall + 15) {
-                /* kernel-assisted AMO not suitable for do_syscall */
-                start_exclusive();
-                ret = riscv_flush_icache_syscall(env,
-                                 env->gpr[xA7],
-                                 env->gpr[xA0],
-                                 env->gpr[xA1],
-                                 env->gpr[xA2],
-                                 env->gpr[xA3]);
-                end_exclusive();
+                /* riscv_flush_icache_syscall is a no-op in QEMU as
+                   self-modifying code is automatically detected */
+                ret = 0;
             } else {
                 ret = do_syscall(env,
                                  env->gpr[xA7],

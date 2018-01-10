@@ -23,7 +23,4 @@
 
 #ifdef CONFIG_USER_ONLY
 int riscv_cpu_do_usermode_amo(CPUState *cs);
-
-target_long riscv_flush_icache_syscall(CPURISCVState *env, int num,
-        target_long cmd, target_long arg1, target_long arg2, target_long arg3);
 #endif
