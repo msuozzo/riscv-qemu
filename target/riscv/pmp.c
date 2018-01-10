@@ -128,27 +128,29 @@ static void pmp_write_cfg(CPURISCVState *env, uint32_t pmp_index, uint8_t val)
     }
 }
 
-static target_ulong pmp_get_napot_base_and_range(target_ulong reg,
-    target_ulong *range)
+static void pmp_decode_napot(target_ulong a, target_ulong *sa, target_ulong *ea)
 {
-    /* construct a mask of all bits bar the top bit */
-    target_ulong mask = 0u;
-    target_ulong base = reg;
-    target_ulong numbits = (sizeof(target_ulong) * 8u) + 2u;
-    mask = (mask - 1u) >> 1;
-
-    while (mask) {
-        if ((reg & mask) == mask) {
-            /* this is the mask to use */
-            base = reg & ~mask;
-            break;
-        }
-        mask >>= 1;
-        numbits--;
+    /*
+       aaaa...aaa0   8-byte NAPOT range
+       aaaa...aa01   16-byte NAPOT range
+       aaaa...a011   32-byte NAPOT range
+       ...
+       aa01...1111   2^XLEN-byte NAPOT range
+       a011...1111   2^(XLEN+1)-byte NAPOT range
+       0111...1111   2^(XLEN+2)-byte NAPOT range
+       1111...1111   Reserved
+    */
+    if (a == -1) {
+        *sa = 0u;
+        *ea = -1;
+        return;
+    } else {
+        target_ulong t1 = ctz64(~a);
+        target_ulong base = (a & ~(((target_ulong)1 << t1) - 1)) << 3;
+        target_ulong range = ((target_ulong)1 << (t1 + 3)) - 1;
+        *sa = base;
+        *ea = base + range;
     }
-
-    *range = (1lu << numbits) - 1u;
-    return base;
 }
 
 
@@ -190,9 +192,7 @@ static void pmp_update_rule(CPURISCVState *env, uint32_t pmp_index)
         break;
 
     case PMP_AMATCH_NAPOT:
-        sa = pmp_get_napot_base_and_range(this_addr, &ea);
-        sa = this_addr << 2; /* shift up from [xx:0] to [xx+2:2] */
-        ea += sa;
+        pmp_decode_napot(this_addr, &sa, &ea);
         break;
 
     default:
