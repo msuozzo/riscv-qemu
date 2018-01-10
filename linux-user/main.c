@@ -227,7 +227,7 @@ void cpu_loop(CPUX86State *env)
         cpu_exec_end(cs);
         process_queued_cpu_work(cs);
 
-        switch (trapnr) {
+        switch(trapnr) {
         case 0x80:
             /* linux syscall from int $0x80 */
             ret = do_syscall(env,
@@ -585,7 +585,7 @@ void cpu_loop(CPUARMState *env)
         cpu_exec_end(cs);
         process_queued_cpu_work(cs);
 
-        switch (trapnr) {
+        switch(trapnr) {
         case EXCP_UDEF:
         case EXCP_NOCP:
         case EXCP_INVSTATE:
@@ -1379,7 +1379,7 @@ void cpu_loop(CPUPPCState *env)
         cpu_exec_end(cs);
         process_queued_cpu_work(cs);
 
-        switch (trapnr) {
+        switch(trapnr) {
         case POWERPC_EXCP_NONE:
             /* Just go on */
             break;
@@ -2251,7 +2251,7 @@ void cpu_loop(CPUMIPSState *env)
         cpu_exec_end(cs);
         process_queued_cpu_work(cs);
 
-        switch (trapnr) {
+        switch(trapnr) {
         case EXCP_SYSCALL:
             env->active_tc.PC += 4;
 # ifdef TARGET_ABI_MIPSO32
@@ -2957,7 +2957,7 @@ void cpu_loop(CPUM68KState *env)
         cpu_exec_end(cs);
         process_queued_cpu_work(cs);
 
-        switch (trapnr) {
+        switch(trapnr) {
         case EXCP_ILLEGAL:
             {
                 if (ts->sim_syscalls) {

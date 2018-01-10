@@ -145,9 +145,8 @@ void host_to_target_sigset(target_sigset_t *d, const sigset_t *s)
     int i;
 
     host_to_target_sigset_internal(&d1, s);
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0;i < TARGET_NSIG_WORDS; i++)
         d->sig[i] = tswapal(d1.sig[i]);
-    }
 }
 
 static void target_to_host_sigset_internal(sigset_t *d,
@@ -167,9 +166,8 @@ void target_to_host_sigset(sigset_t *d, const target_sigset_t *s)
     target_sigset_t s1;
     int i;
 
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0;i < TARGET_NSIG_WORDS; i++)
         s1.sig[i] = tswapal(s->sig[i]);
-    }
     target_to_host_sigset_internal(d, &s1);
 }
 
@@ -188,9 +186,8 @@ void target_to_host_old_sigset(sigset_t *sigset,
     int i;
 
     d.sig[0] = *old_sigset;
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1;i < TARGET_NSIG_WORDS; i++)
         d.sig[i] = 0;
-    }
     target_to_host_sigset(sigset, &d);
 }
 
@@ -477,11 +474,11 @@ void signal_init(void)
     int host_sig;
 
     /* generate signal conversion tables */
-    for (i = 1; i < _NSIG; i++) {
+    for(i = 1; i < _NSIG; i++) {
         if (host_to_target_signal_table[i] == 0)
             host_to_target_signal_table[i] = i;
     }
-    for (i = 1; i < _NSIG; i++) {
+    for(i = 1; i < _NSIG; i++) {
         j = host_to_target_signal_table[i];
         target_to_host_signal_table[j] = i;
     }
@@ -496,7 +493,7 @@ void signal_init(void)
     sigfillset(&act.sa_mask);
     act.sa_flags = SA_SIGINFO;
     act.sa_sigaction = host_signal_handler;
-    for (i = 1; i <= TARGET_NSIG; i++) {
+    for(i = 1; i <= TARGET_NSIG; i++) {
         host_sig = target_to_host_signal(i);
         sigaction(host_sig, NULL, &oact);
         if (oact.sa_sigaction == (void *)SIG_IGN) {
@@ -1135,7 +1132,7 @@ static void setup_frame(int sig, struct target_sigaction *ka,
     setup_sigcontext(&frame->sc, &frame->fpstate, env, set->sig[0],
             frame_addr + offsetof(struct sigframe, fpstate));
 
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->extramask[i - 1]);
     }
 
@@ -1216,7 +1213,7 @@ static void setup_rt_frame(int sig, struct target_sigaction *ka,
     setup_sigcontext(&frame->uc.tuc_mcontext, &frame->fpstate, env,
             set->sig[0], frame_addr + offsetof(struct rt_sigframe, fpstate));
 
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->uc.tuc_sigmask.sig[i]);
     }
 
@@ -1354,7 +1351,7 @@ long do_sigreturn(CPUX86State *env)
         goto badframe;
     /* set blocked signals */
     __get_user(target_set.sig[0], &frame->sc.oldmask);
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __get_user(target_set.sig[i], &frame->extramask[i - 1]);
     }
 
@@ -1963,7 +1960,7 @@ static void setup_sigframe_v2(struct target_ucontext_v2 *uc,
     /* Write terminating magic word */
     __put_user(0, regspace);
 
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &uc->tuc_sigmask.sig[i]);
     }
 }
@@ -1983,7 +1980,7 @@ static void setup_frame_v1(int usig, struct target_sigaction *ka,
 
     setup_sigcontext(&frame->sc, regs, set->sig[0]);
 
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->extramask[i - 1]);
     }
 
@@ -2060,7 +2057,7 @@ static void setup_rt_frame_v1(int usig, struct target_sigaction *ka,
     memcpy(&frame->uc.tuc_stack, &stack, sizeof(stack));
 
     setup_sigcontext(&frame->uc.tuc_mcontext, env, set->sig[0]);
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->uc.tuc_sigmask.sig[i]);
     }
 
@@ -2174,7 +2171,7 @@ static long do_sigreturn_v1(CPUARMState *env)
     }
 
     __get_user(set.sig[0], &frame->sc.oldmask);
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __get_user(set.sig[i], &frame->extramask[i - 1]);
     }
 
@@ -2737,7 +2734,7 @@ long do_sigreturn(CPUSPARCState *env)
          * the races which exist anyways.
          */
     __get_user(set.sig[0], &sf->info.si_mask);
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __get_user(set.sig[i], &sf->extramask[i - 1]);
     }
 
@@ -3238,7 +3235,7 @@ static void setup_frame(int sig, struct target_sigaction * ka,
 
     setup_sigcontext(regs, &frame->sf_sc);
 
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->sf_mask.sig[i]);
     }
 
@@ -3282,7 +3279,7 @@ long do_sigreturn(CPUMIPSState *regs)
     if (!lock_user_struct(VERIFY_READ, frame, frame_addr, 1))
         goto badframe;
 
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __get_user(target_set.sig[i], &frame->sf_mask.sig[i]);
     }
 
@@ -3343,7 +3340,7 @@ static void setup_rt_frame(int sig, struct target_sigaction *ka,
 
     setup_sigcontext(env, &frame->rs_uc.tuc_mcontext);
 
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->rs_uc.tuc_sigmask.sig[i]);
     }
 
@@ -3638,7 +3635,7 @@ static void setup_rt_frame(int sig, struct target_sigaction *ka,
                &frame->uc.tuc_stack.ss_size);
     setup_sigcontext(&frame->uc.tuc_mcontext,
                      regs, set->sig[0]);
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->uc.tuc_sigmask.sig[i]);
     }
 
@@ -3688,7 +3685,7 @@ long do_sigreturn(CPUSH4State *regs)
     }
 
     __get_user(target_set.sig[0], &frame->sc.oldmask);
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __get_user(target_set.sig[i], &frame->extramask[i - 1]);
     }
 
@@ -3875,7 +3872,7 @@ static void setup_frame(int sig, struct target_sigaction *ka,
     /* Save the mask.  */
     __put_user(set->sig[0], &frame->uc.tuc_mcontext.oldmask);
 
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->extramask[i - 1]);
     }
 
@@ -3942,7 +3939,7 @@ long do_sigreturn(CPUMBState *env)
 
     /* Restore blocked signals */
     __get_user(target_set.sig[0], &frame->uc.tuc_mcontext.oldmask);
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __get_user(target_set.sig[i], &frame->extramask[i - 1]);
     }
     target_to_host_sigset_internal(&set, &target_set);
@@ -4071,7 +4068,7 @@ static void setup_frame(int sig, struct target_sigaction *ka,
     /* Save the mask.  */
     __put_user(set->sig[0], &frame->sc.oldmask);
 
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->extramask[i - 1]);
     }
 
@@ -4114,7 +4111,7 @@ long do_sigreturn(CPUCRISState *env)
 
     /* Restore blocked signals */
     __get_user(target_set.sig[0], &frame->sc.oldmask);
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __get_user(target_set.sig[i], &frame->extramask[i - 1]);
     }
     target_to_host_sigset_internal(&set, &target_set);
@@ -5391,7 +5388,7 @@ static void setup_rt_frame(int sig, struct target_sigaction *ka,
     __put_user(h2g (&rt_sf->uc.tuc_mcontext),
                &rt_sf->uc.tuc_regs);
 #endif
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &rt_sf->uc.tuc_sigmask.sig[i]);
     }
 
@@ -5684,7 +5681,7 @@ static void setup_frame(int sig, struct target_sigaction *ka,
 
     setup_sigcontext(&frame->sc, env, set->sig[0]);
 
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->extramask[i - 1]);
     }
 
@@ -5862,7 +5859,7 @@ static void setup_rt_frame(int sig, struct target_sigaction *ka,
     if (err)
         goto give_sigsegv;
 
-    for (i = 0; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 0; i < TARGET_NSIG_WORDS; i++) {
         __put_user(set->sig[i], &frame->uc.tuc_sigmask.sig[i]);
     }
 
@@ -5909,7 +5906,7 @@ long do_sigreturn(CPUM68KState *env)
 
     __get_user(target_set.sig[0], &frame->sc.sc_mask);
 
-    for (i = 1; i < TARGET_NSIG_WORDS; i++) {
+    for(i = 1; i < TARGET_NSIG_WORDS; i++) {
         __get_user(target_set.sig[i], &frame->extramask[i - 1]);
     }
 
