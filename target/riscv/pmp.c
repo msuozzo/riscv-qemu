@@ -353,8 +353,6 @@ void pmpaddr_csr_write(CPURISCVState *env, uint32_t addr_index,
     PMP_DEBUG("%s: hart " TARGET_FMT_ld ": addr%d, val: 0x" TARGET_FMT_lx,
         __func__, env->mhartid, addr_index, val);
 
-    /* val &= 0x3ffffffffffffful; */
-
     if (addr_index < MAX_RISCV_PMPS) {
         if (!pmp_is_locked(env, addr_index)) {
             env->pmp_state.pmp[addr_index].addr_reg = val;
