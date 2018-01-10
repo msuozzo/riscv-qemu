@@ -600,9 +600,8 @@ target_ulong helper_csrrc(CPURISCVState *env, target_ulong src,
 
 void set_privilege(CPURISCVState *env, target_ulong newpriv)
 {
-    if (!(newpriv <= PRV_M)) {
-        printf("INVALID PRIV SET\n");
-        exit(1);
+    if (newpriv > PRV_M) {
+        g_assert_not_reached();
     }
     if (newpriv == PRV_H) {
         newpriv = PRV_U;
