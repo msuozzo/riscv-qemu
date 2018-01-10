@@ -1955,10 +1955,11 @@ void riscv_translate_init(void)
 {
     int i;
 
-    /* WARNING: cpu_gpr[0] is not allocated ON PURPOSE. Do not use it. */
+    /* cpu_gpr[0] is a placeholder for the zero register. Do not use it. */
     /* Use the gen_set_gpr and gen_get_gpr helper functions when accessing */
     /* registers, unless you specifically block reads/writes to reg 0 */
-    TCGV_UNUSED(cpu_gpr[0]);
+    cpu_gpr[0] = NULL;
+
     for (i = 1; i < 32; i++) {
         cpu_gpr[i] = tcg_global_mem_new(cpu_env,
             offsetof(CPURISCVState, gpr[i]), riscv_int_regnames[i]);
