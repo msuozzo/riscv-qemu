@@ -519,7 +519,7 @@
 #
 # @pc: the instruction pointer
 #
-# Since 2.8
+# Since 2.12
 ##
 { 'struct': 'CpuInfoRISCV', 'data': { 'pc': 'int' } }
 
