@@ -526,7 +526,7 @@ static void gen_jal(CPURISCVState *env, DisasContext *ctx, int rd,
 
     /* check misaligned: */
     next_pc = ctx->pc + imm;
-    if (!riscv_feature(env, RISCV_FEATURE_RVC)) {
+    if (!riscv_has_ext(env, RVC)) {
         if ((next_pc & 0x3) != 0) {
             generate_exception_mbadaddr(ctx, RISCV_EXCP_INST_ADDR_MIS);
         }
@@ -554,7 +554,7 @@ static void gen_jalr(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
         tcg_gen_addi_tl(cpu_pc, cpu_pc, imm);
         tcg_gen_andi_tl(cpu_pc, cpu_pc, (target_ulong)-2);
 
-        if (!riscv_feature(env, RISCV_FEATURE_RVC)) {
+        if (!riscv_has_ext(env, RVC)) {
             tcg_gen_andi_tl(t0, cpu_pc, 0x2);
             tcg_gen_brcondi_tl(TCG_COND_NE, t0, 0x0, misaligned);
         }
@@ -612,7 +612,7 @@ static void gen_branch(CPURISCVState *env, DisasContext *ctx, uint32_t opc,
 
     gen_goto_tb(ctx, 1, ctx->next_pc);
     gen_set_label(l); /* branch taken */
-    if (!riscv_feature(env, RISCV_FEATURE_RVC) && ((ctx->pc + bimm) & 0x3)) {
+    if (!riscv_has_ext(env, RVC) && ((ctx->pc + bimm) & 0x3)) {
         /* misaligned */
         generate_exception_mbadaddr(ctx, RISCV_EXCP_INST_ADDR_MIS);
         tcg_gen_exit_tb(0);
@@ -1831,7 +1831,7 @@ static void decode_opc(CPURISCVState *env, DisasContext *ctx)
 {
     /* check for compressed insn */
     if (extract32(ctx->opcode, 0, 2) != 3) {
-        if (!riscv_feature(env, RISCV_FEATURE_RVC)) {
+        if (!riscv_has_ext(env, RVC)) {
             kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
         } else {
             ctx->next_pc = ctx->pc + 2;

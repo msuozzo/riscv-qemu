@@ -123,11 +123,6 @@ static ObjectClass *riscv_cpu_class_by_name(const char *cpu_model)
     return oc;
 }
 
-static inline void set_feature(CPURISCVState *env, int feature)
-{
-    env->features |= 1ULL << feature;
-}
-
 static void riscv_cpu_dump_state(CPUState *cs, FILE *f,
     fprintf_function cpu_fprintf, int flags)
 {
@@ -216,31 +211,13 @@ static void riscv_cpu_disas_set_info(CPUState *s, disassemble_info *info)
 static void riscv_cpu_realize(DeviceState *dev, Error **errp)
 {
     CPUState *cs = CPU(dev);
-    RISCVCPU *cpu = RISCV_CPU(dev);
     RISCVCPUClass *mcc = RISCV_CPU_GET_CLASS(dev);
-    CPURISCVState *env = &cpu->env;
     Error *local_err = NULL;
 
     cpu_exec_realizefn(cs, &local_err);
     if (local_err != NULL) {
         error_propagate(errp, local_err);
         return;
-    }
-
-    if (env->misa & RVM) {
-        set_feature(env, RISCV_FEATURE_RVM);
-    }
-    if (env->misa & RVA) {
-        set_feature(env, RISCV_FEATURE_RVA);
-    }
-    if (env->misa & RVF) {
-        set_feature(env, RISCV_FEATURE_RVF);
-    }
-    if (env->misa & RVD) {
-        set_feature(env, RISCV_FEATURE_RVD);
-    }
-    if (env->misa & RVC) {
-        set_feature(env, RISCV_FEATURE_RVC);
     }
 
     qemu_init_vcpu(cs);

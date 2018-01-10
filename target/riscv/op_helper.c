@@ -618,7 +618,7 @@ target_ulong helper_sret(CPURISCVState *env, target_ulong cpu_pc_deb)
     }
 
     target_ulong retpc = env->sepc;
-    if (!riscv_feature(env, RISCV_FEATURE_RVC) && (retpc & 0x3)) {
+    if (!riscv_has_ext(env, RVC) && (retpc & 0x3)) {
         helper_raise_exception(env, RISCV_EXCP_INST_ADDR_MIS);
     }
 
@@ -641,7 +641,7 @@ target_ulong helper_mret(CPURISCVState *env, target_ulong cpu_pc_deb)
     }
 
     target_ulong retpc = env->mepc;
-    if (!riscv_feature(env, RISCV_FEATURE_RVC) && (retpc & 0x3)) {
+    if (!riscv_has_ext(env, RVC) && (retpc & 0x3)) {
         helper_raise_exception(env, RISCV_EXCP_INST_ADDR_MIS);
     }
 
