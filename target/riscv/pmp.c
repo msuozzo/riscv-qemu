@@ -218,7 +218,7 @@ static int pmp_is_in_range(CPURISCVState *env, int pmp_index, target_ulong addr)
     int result = 0;
 
     if ((addr >= env->pmp_state.addr[pmp_index].sa)
-        && (addr < env->pmp_state.addr[pmp_index].ea)) {
+        && (addr <= env->pmp_state.addr[pmp_index].ea)) {
         result = 1;
     } else {
         result = 0;
