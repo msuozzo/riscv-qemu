@@ -23,7 +23,7 @@
 #include "cpu.h"
 #include "exec/exec-all.h"
 
-/*#define RISCV_DEBUG_INTERRUPT */
+/* #define RISCV_DEBUG_INTERRUPT */
 
 int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch)
 {
@@ -430,13 +430,13 @@ void riscv_cpu_do_interrupt(CPUState *cs)
     CPURISCVState *env = &cpu->env;
 
     #ifdef RISCV_DEBUG_INTERRUPT
+    int log_cause = cs->exception_index & RISCV_EXCP_INT_MASK;
     if (cs->exception_index & RISCV_EXCP_INT_FLAG) {
-        fprintf(stderr, "core   0: exception trap_%s, epc 0x" TARGET_FMT_lx "\n"
-                , riscv_interrupt_names[cs->exception_index & RISCV_EXCP_INT_MASK],
-                env->pc);
+        qemu_log_mask(LOG_TRACE, "core   0: trap %s, epc 0x" TARGET_FMT_lx,
+            riscv_interrupt_names[log_cause], env->pc);
     } else {
-        fprintf(stderr, "core   0: exception trap_%s, epc 0x" TARGET_FMT_lx "\n"
-                , riscv_excp_names[cs->exception_index], env->pc);
+        qemu_log_mask(LOG_TRACE, "core   0: intr %s, epc 0x" TARGET_FMT_lx,
+            riscv_excp_names[log_cause], env->pc);
     }
     #endif
 
@@ -498,8 +498,8 @@ void riscv_cpu_do_interrupt(CPUState *cs)
 
         if (hasbadaddr) {
             #ifdef RISCV_DEBUG_INTERRUPT
-            fprintf(stderr, "core %d: badaddr 0x" TARGET_FMT_lx "\n",
-                    env->mhartid, env->badaddr);
+            qemu_log_mask(LOG_TRACE, "core " TARGET_FMT_ld
+                ": badaddr 0x" TARGET_FMT_lx, env->mhartid, env->badaddr);
             #endif
             env->sbadaddr = env->badaddr;
         }
@@ -518,8 +518,8 @@ void riscv_cpu_do_interrupt(CPUState *cs)
 
         if (hasbadaddr) {
             #ifdef RISCV_DEBUG_INTERRUPT
-            fprintf(stderr, "core %d: badaddr 0x" TARGET_FMT_lx "\n",
-                    env->mhartid, env->badaddr);
+            qemu_log_mask(LOG_TRACE, "core " TARGET_FMT_ld
+                ": badaddr 0x" TARGET_FMT_lx, env->mhartid, env->badaddr);
             #endif
             env->mbadaddr = env->badaddr;
         }
