@@ -599,7 +599,7 @@ target_ulong helper_csrrc(CPURISCVState *env, target_ulong src,
 
 #ifndef CONFIG_USER_ONLY
 
-void set_privilege(CPURISCVState *env, target_ulong newpriv)
+void riscv_set_mode(CPURISCVState *env, target_ulong newpriv)
 {
     if (newpriv > PRV_M) {
         g_assert_not_reached();
@@ -628,7 +628,7 @@ target_ulong helper_sret(CPURISCVState *env, target_ulong cpu_pc_deb)
                         get_field(mstatus, MSTATUS_SPIE));
     mstatus = set_field(mstatus, MSTATUS_SPIE, 0);
     mstatus = set_field(mstatus, MSTATUS_SPP, PRV_U);
-    set_privilege(env, prev_priv);
+    riscv_set_mode(env, prev_priv);
     csr_write_helper(env, mstatus, CSR_MSTATUS);
 
     return retpc;
@@ -651,7 +651,7 @@ target_ulong helper_mret(CPURISCVState *env, target_ulong cpu_pc_deb)
                         get_field(mstatus, MSTATUS_MPIE));
     mstatus = set_field(mstatus, MSTATUS_MPIE, 0);
     mstatus = set_field(mstatus, MSTATUS_MPP, PRV_U);
-    set_privilege(env, prev_priv);
+    riscv_set_mode(env, prev_priv);
     csr_write_helper(env, mstatus, CSR_MSTATUS);
 
     return retpc;
