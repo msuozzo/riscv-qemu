@@ -669,13 +669,7 @@ void helper_wfi(CPURISCVState *env)
 
 void helper_fence_i(CPURISCVState *env)
 {
-    RISCVCPU *cpu = riscv_env_get_cpu(env);
-    CPUState *cs = CPU(cpu);
-    /* Flush QEMU's TLB */
-    tlb_flush(cs);
-    /* ARM port seems to not know if this is okay inside a TB
-       But we need to do it */
-    tb_flush(cs);
+    /* FENCE.I is a no-op in qemu as self modifying code is detected */
 }
 
 void helper_tlb_flush(CPURISCVState *env)
