@@ -39,7 +39,7 @@
 #elif defined(TARGET_RISCV64)
 #define RVXLEN  ((target_ulong)2 << (TARGET_LONG_BITS - 2))
 #endif
-#define RV(x) (1L << (x - 'A'))
+#define RV(x) ((target_ulong)1 << (x - 'A'))
 
 #define RVI RV('I')
 #define RVM RV('M')
