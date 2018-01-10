@@ -1371,8 +1371,7 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             break;
 #ifndef CONFIG_USER_ONLY
         case 0x002: /* URET */
-            printf("URET unimplemented\n");
-            exit(1);
+            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
             break;
         case 0x102: /* SRET */
             gen_helper_sret(cpu_pc, cpu_env, cpu_pc);
@@ -1380,8 +1379,7 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             ctx->bstate = BS_BRANCH;
             break;
         case 0x202: /* HRET */
-            printf("HRET unimplemented\n");
-            exit(1);
+            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
             break;
         case 0x302: /* MRET */
             gen_helper_mret(cpu_pc, cpu_env, cpu_pc);
@@ -1389,8 +1387,7 @@ static void gen_system(DisasContext *ctx, uint32_t opc,
             ctx->bstate = BS_BRANCH;
             break;
         case 0x7b2: /* DRET */
-            printf("DRET unimplemented\n");
-            exit(1);
+            kill_unknown(ctx, RISCV_EXCP_ILLEGAL_INST);
             break;
         case 0x105: /* WFI */
             tcg_gen_movi_tl(cpu_pc, ctx->next_pc);
