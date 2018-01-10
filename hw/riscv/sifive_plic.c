@@ -30,7 +30,7 @@
 #include "target/riscv/cpu.h"
 #include "hw/riscv/sifive_plic.h"
 
-/* #define RISCV_DEBUG_PLIC */
+#define RISCV_DEBUG_PLIC 0
 
 static PLICMode char_to_mode(char c)
 {
@@ -44,8 +44,6 @@ static PLICMode char_to_mode(char c)
         exit(1);
     }
 }
-
-#if defined RISCV_DEBUG_PLIC
 
 static char mode_to_char(PLICMode m)
 {
@@ -87,8 +85,6 @@ static void sifive_plic_print_state(SiFivePLICState *plic)
         printf("\n");
     }
 }
-
-#endif
 
 static
 void sifive_plic_set_pending(SiFivePLICState *plic, int irq, bool pending)
@@ -159,20 +155,20 @@ static void sifive_plic_update(SiFivePLICState *plic)
                 if ((env->mip & MIP_MEIP) == 0) {
                     env->mip |= MIP_MEIP;
                     count++;
-                    #if defined RISCV_DEBUG_PLIC
-                    printf("sifive_plic_update: RAISE hart%d-%c\n",
-                        hartid, mode_to_char(mode));
-                    #endif
+                    if (RISCV_DEBUG_PLIC) {
+                        printf("sifive_plic_update: RAISE hart%d-%c\n",
+                            hartid, mode_to_char(mode));
+                    }
                 }
                 break;
             case PLICMode_S:
                 if ((env->mip & MIP_SEIP) == 0) {
                     env->mip |= MIP_SEIP;
                     count++;
-                    #if defined RISCV_DEBUG_PLIC
-                    printf("sifive_plic_update: RAISE hart%d-%c\n",
-                        hartid, mode_to_char(mode));
-                    #endif
+                    if (RISCV_DEBUG_PLIC) {
+                        printf("sifive_plic_update: RAISE hart%d-%c\n",
+                            hartid, mode_to_char(mode));
+                    }
                 }
                 break;
             default:
@@ -183,19 +179,19 @@ static void sifive_plic_update(SiFivePLICState *plic)
             case PLICMode_M:
                 if (env->mip & MIP_MEIP) {
                     env->mip &= ~MIP_MEIP;
-                    #if defined RISCV_DEBUG_PLIC
-                    printf("sifive_plic_update: LOWER hart%d-%c\n",
-                        hartid, mode_to_char(mode));
-                    #endif
+                    if (RISCV_DEBUG_PLIC) {
+                        printf("sifive_plic_update: LOWER hart%d-%c\n",
+                            hartid, mode_to_char(mode));
+                    }
                 }
                 break;
             case PLICMode_S:
                 if (env->mip & MIP_SEIP) {
                     env->mip &= ~MIP_SEIP;
-                    #if defined RISCV_DEBUG_PLIC
-                    printf("sifive_plic_update: LOWER hart%d-%c\n",
-                        hartid, mode_to_char(mode));
-                    #endif
+                    if (RISCV_DEBUG_PLIC) {
+                        printf("sifive_plic_update: LOWER hart%d-%c\n",
+                            hartid, mode_to_char(mode));
+                    }
                 }
                 break;
             default:
@@ -207,9 +203,9 @@ static void sifive_plic_update(SiFivePLICState *plic)
         }
     }
 
-    #if defined RISCV_DEBUG_PLIC
-    sifive_plic_print_state(plic);
-    #endif
+    if (RISCV_DEBUG_PLIC) {
+        sifive_plic_print_state(plic);
+    }
 }
 
 void sifive_plic_raise_irq(SiFivePLICState *plic, uint32_t irq)
@@ -262,19 +258,19 @@ static uint64_t sifive_plic_read(void *opaque, hwaddr addr, unsigned size)
         addr < plic->priority_base + (plic->num_sources << 2))
     {
         uint32_t irq = (addr - plic->priority_base) >> 2;
-        #if defined RISCV_DEBUG_PLIC
-        printf("plic: read priority: irq=%d priority=%d\n",
-            irq, plic->source_priority[irq]);
-        #endif
+        if (RISCV_DEBUG_PLIC) {
+            printf("plic: read priority: irq=%d priority=%d\n",
+                irq, plic->source_priority[irq]);
+        }
         return plic->source_priority[irq];
     } else if (addr >= plic->pending_base && /* 1 bit per source */
                addr < plic->pending_base + (plic->num_sources >> 3))
     {
         uint32_t word = (addr - plic->priority_base) >> 2;
-        #if defined RISCV_DEBUG_PLIC
-        printf("plic: read pending: word=%d value=%d\n",
-            word, plic->pending[word]);
-        #endif
+        if (RISCV_DEBUG_PLIC) {
+            printf("plic: read pending: word=%d value=%d\n",
+                word, plic->pending[word]);
+        }
         return plic->pending[word];
     } else if (addr >= plic->enable_base && /* 1 bit per source */
              addr < plic->enable_base + plic->num_addrs * plic->enable_stride)
@@ -282,12 +278,12 @@ static uint64_t sifive_plic_read(void *opaque, hwaddr addr, unsigned size)
         uint32_t addrid = (addr - plic->enable_base) / plic->enable_stride;
         uint32_t wordid = (addr & (plic->enable_stride - 1)) >> 2;
         if (wordid < plic->bitfield_words) {
-            #if defined RISCV_DEBUG_PLIC
-            printf("plic: read enable: hart%d-%c word=%d value=%x\n",
-                plic->addr_config[addrid].hartid,
-                mode_to_char(plic->addr_config[addrid].mode),
-                wordid, plic->enable[addrid * plic->bitfield_words + wordid]);
-            #endif
+            if (RISCV_DEBUG_PLIC) {
+                printf("plic: read enable: hart%d-%c word=%d value=%x\n",
+                    plic->addr_config[addrid].hartid,
+                    mode_to_char(plic->addr_config[addrid].mode), wordid,
+                    plic->enable[addrid * plic->bitfield_words + wordid]);
+            }
             return plic->enable[addrid * plic->bitfield_words + wordid];
         }
     } else if (addr >= plic->context_base && /* 1 bit per source */
@@ -296,22 +292,22 @@ static uint64_t sifive_plic_read(void *opaque, hwaddr addr, unsigned size)
         uint32_t addrid = (addr - plic->context_base) / plic->context_stride;
         uint32_t contextid = (addr & (plic->context_stride - 1));
         if (contextid == 0) {
-            #if defined RISCV_DEBUG_PLIC
-            printf("plic: read priority: hart%d-%c priority=%x\n",
-                plic->addr_config[addrid].hartid,
-                mode_to_char(plic->addr_config[addrid].mode),
-                plic->target_priority[addrid]);
-            #endif
+            if (RISCV_DEBUG_PLIC) {
+                printf("plic: read priority: hart%d-%c priority=%x\n",
+                    plic->addr_config[addrid].hartid,
+                    mode_to_char(plic->addr_config[addrid].mode),
+                    plic->target_priority[addrid]);
+            }
             return plic->target_priority[addrid];
         } else if (contextid == 4) {
             uint32_t value = sifive_plic_claim(plic, addrid);
-            #if defined RISCV_DEBUG_PLIC
-            printf("plic: read claim: hart%d-%c irq=%x\n",
-                plic->addr_config[addrid].hartid,
-                mode_to_char(plic->addr_config[addrid].mode),
-                value);
-            sifive_plic_print_state(plic);
-            #endif
+            if (RISCV_DEBUG_PLIC) {
+                printf("plic: read claim: hart%d-%c irq=%x\n",
+                    plic->addr_config[addrid].hartid,
+                    mode_to_char(plic->addr_config[addrid].mode),
+                    value);
+                sifive_plic_print_state(plic);
+            }
             return value;
         }
     }
@@ -337,10 +333,10 @@ static void sifive_plic_write(void *opaque, hwaddr addr, uint64_t value,
     {
         uint32_t irq = (addr - plic->priority_base) >> 2;
         plic->source_priority[irq] = value & 7;
-        #if defined RISCV_DEBUG_PLIC
-        printf("plic: write priority: irq=%d priority=%d\n",
-            irq, plic->source_priority[irq]);
-        #endif
+        if (RISCV_DEBUG_PLIC) {
+            printf("plic: write priority: irq=%d priority=%d\n",
+                irq, plic->source_priority[irq]);
+        }
         return;
     } else if (addr >= plic->pending_base && /* 1 bit per source */
                addr < plic->pending_base + (plic->num_sources >> 3))
@@ -354,12 +350,12 @@ static void sifive_plic_write(void *opaque, hwaddr addr, uint64_t value,
         uint32_t wordid = (addr & (plic->enable_stride - 1)) >> 2;
         if (wordid < plic->bitfield_words) {
             plic->enable[addrid * plic->bitfield_words + wordid] = value;
-            #if defined RISCV_DEBUG_PLIC
-            printf("plic: write enable: hart%d-%c word=%d value=%x\n",
-                plic->addr_config[addrid].hartid,
-                mode_to_char(plic->addr_config[addrid].mode),
-                wordid, plic->enable[addrid * plic->bitfield_words + wordid]);
-            #endif
+            if (RISCV_DEBUG_PLIC) {
+                printf("plic: write enable: hart%d-%c word=%d value=%x\n",
+                    plic->addr_config[addrid].hartid,
+                    mode_to_char(plic->addr_config[addrid].mode), wordid,
+                    plic->enable[addrid * plic->bitfield_words + wordid]);
+            }
             return;
         }
     } else if (addr >= plic->context_base && /* 4 bytes per reg */
@@ -368,24 +364,24 @@ static void sifive_plic_write(void *opaque, hwaddr addr, uint64_t value,
         uint32_t addrid = (addr - plic->context_base) / plic->context_stride;
         uint32_t contextid = (addr & (plic->context_stride - 1));
         if (contextid == 0) {
-            #if defined RISCV_DEBUG_PLIC
-            printf("plic: write priority: hart%d-%c priority=%x\n",
-                plic->addr_config[addrid].hartid,
-                mode_to_char(plic->addr_config[addrid].mode),
-                plic->target_priority[addrid]);
-            #endif
+            if (RISCV_DEBUG_PLIC) {
+                printf("plic: write priority: hart%d-%c priority=%x\n",
+                    plic->addr_config[addrid].hartid,
+                    mode_to_char(plic->addr_config[addrid].mode),
+                    plic->target_priority[addrid]);
+            }
             if (value <= plic->num_priorities) {
                 plic->target_priority[addrid] = value;
                 sifive_plic_update(plic);
             }
             return;
         } else if (contextid == 4) {
-            #if defined RISCV_DEBUG_PLIC
-            printf("plic: write claim: hart%d-%c irq=%x\n",
-                plic->addr_config[addrid].hartid,
-                mode_to_char(plic->addr_config[addrid].mode),
-                (uint32_t)value);
-            #endif
+            if (RISCV_DEBUG_PLIC) {
+                printf("plic: write claim: hart%d-%c irq=%x\n",
+                    plic->addr_config[addrid].hartid,
+                    mode_to_char(plic->addr_config[addrid].mode),
+                    (uint32_t)value);
+            }
             if (value < plic->num_sources) {
                 sifive_plic_set_claimed(plic, value, false);
                 sifive_plic_update(plic);
@@ -478,9 +474,9 @@ static void parse_hart_config(SiFivePLICState *plic)
 static void sifive_plic_irq_request(void *opaque, int irq, int level)
 {
     SiFivePLICState *plic = opaque;
-    #if defined RISCV_DEBUG_PLIC
-    printf("sifive_plic_irq_request: irq=%d level=%d\n", irq, level);
-    #endif
+    if (RISCV_DEBUG_PLIC) {
+        printf("sifive_plic_irq_request: irq=%d level=%d\n", irq, level);
+    }
     sifive_plic_set_pending(plic, irq, level > 0);
     sifive_plic_update(plic);
 }
