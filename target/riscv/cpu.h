@@ -240,10 +240,6 @@ uint64_t cpu_riscv_read_rtc(void);
 
 int riscv_cpu_handle_mmu_fault(CPUState *cpu, vaddr address, int rw,
                               int mmu_idx);
-#if !defined(CONFIG_USER_ONLY)
-hwaddr cpu_riscv_translate_address(CPURISCVState *env, target_ulong address,
-                                   int rw);
-#endif
 
 static inline void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
                                         target_ulong *cs_base, uint32_t *flags)
