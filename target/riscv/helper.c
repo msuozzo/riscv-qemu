@@ -23,7 +23,7 @@
 #include "cpu.h"
 #include "exec/exec-all.h"
 
-/* #define RISCV_DEBUG_INTERRUPT */
+#define RISCV_DEBUG_INTERRUPT 0
 
 int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch)
 {
@@ -378,7 +378,6 @@ int riscv_cpu_handle_mmu_fault(CPUState *cs, vaddr address,
     return ret;
 }
 
-#ifdef RISCV_DEBUG_INTERRUPT
 static const char * const riscv_excp_names[16] = {
     "misaligned_fetch",
     "fault_fetch",
@@ -414,7 +413,6 @@ static const char * const riscv_interrupt_names[14] = {
     "coprocessor",
     "host"
 };
-#endif     /* RISCV_DEBUG_INTERRUPT */
 
 /*
  * Handle Traps
@@ -429,16 +427,16 @@ void riscv_cpu_do_interrupt(CPUState *cs)
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
 
-    #ifdef RISCV_DEBUG_INTERRUPT
-    int log_cause = cs->exception_index & RISCV_EXCP_INT_MASK;
-    if (cs->exception_index & RISCV_EXCP_INT_FLAG) {
-        qemu_log_mask(LOG_TRACE, "core   0: trap %s, epc 0x" TARGET_FMT_lx,
-            riscv_interrupt_names[log_cause], env->pc);
-    } else {
-        qemu_log_mask(LOG_TRACE, "core   0: intr %s, epc 0x" TARGET_FMT_lx,
-            riscv_excp_names[log_cause], env->pc);
+    if (RISCV_DEBUG_INTERRUPT) {
+        int log_cause = cs->exception_index & RISCV_EXCP_INT_MASK;
+        if (cs->exception_index & RISCV_EXCP_INT_FLAG) {
+            qemu_log_mask(LOG_TRACE, "core   0: trap %s, epc 0x" TARGET_FMT_lx,
+                riscv_interrupt_names[log_cause], env->pc);
+        } else {
+            qemu_log_mask(LOG_TRACE, "core   0: intr %s, epc 0x" TARGET_FMT_lx,
+                riscv_excp_names[log_cause], env->pc);
+        }
     }
-    #endif
 
     target_ulong fixed_cause = 0;
     if (cs->exception_index & (RISCV_EXCP_INT_FLAG)) {
@@ -497,10 +495,10 @@ void riscv_cpu_do_interrupt(CPUState *cs)
         env->sepc = backup_epc;
 
         if (hasbadaddr) {
-            #ifdef RISCV_DEBUG_INTERRUPT
-            qemu_log_mask(LOG_TRACE, "core " TARGET_FMT_ld
-                ": badaddr 0x" TARGET_FMT_lx, env->mhartid, env->badaddr);
-            #endif
+            if (RISCV_DEBUG_INTERRUPT) {
+                qemu_log_mask(LOG_TRACE, "core " TARGET_FMT_ld
+                    ": badaddr 0x" TARGET_FMT_lx, env->mhartid, env->badaddr);
+            }
             env->sbadaddr = env->badaddr;
         }
 
@@ -517,10 +515,10 @@ void riscv_cpu_do_interrupt(CPUState *cs)
         env->mcause = fixed_cause;
 
         if (hasbadaddr) {
-            #ifdef RISCV_DEBUG_INTERRUPT
-            qemu_log_mask(LOG_TRACE, "core " TARGET_FMT_ld
-                ": badaddr 0x" TARGET_FMT_lx, env->mhartid, env->badaddr);
-            #endif
+            if (RISCV_DEBUG_INTERRUPT) {
+                qemu_log_mask(LOG_TRACE, "core " TARGET_FMT_ld
+                    ": badaddr 0x" TARGET_FMT_lx, env->mhartid, env->badaddr);
+            }
             env->mbadaddr = env->badaddr;
         }
 
