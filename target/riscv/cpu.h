@@ -206,12 +206,13 @@ static inline int riscv_feature(CPURISCVState *env, int feature)
 #include "cpu_user.h"
 #include "cpu_bits.h"
 
+extern const char * const riscv_int_regnames[];
+extern const char * const riscv_fpr_regnames[];
+
 #define ENV_GET_CPU(e) CPU(riscv_env_get_cpu(e))
 #define ENV_OFFSET offsetof(RISCVCPU, env)
 
 void riscv_cpu_do_interrupt(CPUState *cpu);
-void riscv_cpu_dump_state(CPUState *cpu, FILE *f, fprintf_function cpu_fprintf,
-                          int flags);
 hwaddr riscv_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 int riscv_cpu_gdb_read_register(CPUState *cpu, uint8_t *buf, int reg);
 int riscv_cpu_gdb_write_register(CPUState *cpu, uint8_t *buf, int reg);

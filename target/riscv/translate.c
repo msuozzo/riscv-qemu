@@ -61,21 +61,6 @@ enum {
     BS_BRANCH   = 2, /* Need to exit tb for branch, jal, etc. */
 };
 
-
-static const char * const regnames[] = {
-  "zero", "ra  ", "sp  ", "gp  ", "tp  ", "t0  ",  "t1  ",  "t2  ",
-  "s0  ", "s1  ", "a0  ", "a1  ", "a2  ", "a3  ",  "a4  ",  "a5  ",
-  "a6  ", "a7  ", "s2  ", "s3  ", "s4  ", "s5  ",  "s6  ",  "s7  ",
-  "s8  ", "s9  ", "s10 ", "s11 ", "t3  ", "t4  ",  "t5  ",  "t6  "
-};
-
-static const char * const fpr_regnames[] = {
-  "ft0", "ft1", "ft2",  "ft3",  "ft4", "ft5", "ft6",  "ft7",
-  "fs0", "fs1", "fa0",  "fa1",  "fa2", "fa3", "fa4",  "fa5",
-  "fa6", "fa7", "fs2",  "fs3",  "fs4", "fs5", "fs6",  "fs7",
-  "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11"
-};
-
 /* convert riscv funct3 to qemu memop for load/store */
 static const int tcg_memop_lookup[8] = {
     [0 ... 7] = -1,
@@ -1966,39 +1951,6 @@ done_generating:
 #endif
 }
 
-void riscv_cpu_dump_state(CPUState *cs, FILE *f, fprintf_function cpu_fprintf,
-                         int flags)
-{
-    RISCVCPU *cpu = RISCV_CPU(cs);
-    CPURISCVState *env = &cpu->env;
-    int i;
-
-    cpu_fprintf(f, "pc=0x" TARGET_FMT_lx "\n", env->pc);
-    for (i = 0; i < 32; i++) {
-        cpu_fprintf(f, " %s " TARGET_FMT_lx, regnames[i], env->gpr[i]);
-        if ((i & 3) == 3) {
-            cpu_fprintf(f, "\n");
-        }
-    }
-
-#ifndef CONFIG_USER_ONLY
-    cpu_fprintf(f, " %s " TARGET_FMT_lx "\n", "MSTATUS ",
-                env->mstatus);
-    cpu_fprintf(f, " %s " TARGET_FMT_lx "\n", "MIP     ", env->mip);
-    cpu_fprintf(f, " %s " TARGET_FMT_lx "\n", "MIE     ", env->mie);
-#endif
-
-    for (i = 0; i < 32; i++) {
-        if ((i & 3) == 0) {
-            cpu_fprintf(f, "FPR%02d:", i);
-        }
-        cpu_fprintf(f, " %s %016" PRIx64, fpr_regnames[i], env->fpr[i]);
-        if ((i & 3) == 3) {
-            cpu_fprintf(f, "\n");
-        }
-    }
-}
-
 void riscv_translate_init(void)
 {
     int i;
@@ -2009,12 +1961,12 @@ void riscv_translate_init(void)
     TCGV_UNUSED(cpu_gpr[0]);
     for (i = 1; i < 32; i++) {
         cpu_gpr[i] = tcg_global_mem_new(cpu_env,
-                             offsetof(CPURISCVState, gpr[i]), regnames[i]);
+            offsetof(CPURISCVState, gpr[i]), riscv_int_regnames[i]);
     }
 
     for (i = 0; i < 32; i++) {
         cpu_fpr[i] = tcg_global_mem_new_i64(cpu_env,
-                             offsetof(CPURISCVState, fpr[i]), fpr_regnames[i]);
+            offsetof(CPURISCVState, fpr[i]), riscv_fpr_regnames[i]);
     }
 
     cpu_pc = tcg_global_mem_new(cpu_env, offsetof(CPURISCVState, pc), "pc");

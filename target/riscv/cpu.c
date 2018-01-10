@@ -27,6 +27,20 @@
 
 /* RISC-V CPU definitions */
 
+const char * const riscv_int_regnames[] = {
+  "zero", "ra  ", "sp  ", "gp  ", "tp  ", "t0  ", "t1  ", "t2  ",
+  "s0  ", "s1  ", "a0  ", "a1  ", "a2  ", "a3  ", "a4  ", "a5  ",
+  "a6  ", "a7  ", "s2  ", "s3  ", "s4  ", "s5  ", "s6  ", "s7  ",
+  "s8  ", "s9  ", "s10 ", "s11 ", "t3  ", "t4  ", "t5  ", "t6  "
+};
+
+const char * const riscv_fpr_regnames[] = {
+  "ft0 ", "ft1 ", "ft2 ", "ft3 ", "ft4 ", "ft5 ", "ft6 ",  "ft7 ",
+  "fs0 ", "fs1 ", "fa0 ", "fa1 ", "fa2 ", "fa3 ", "fa4 ",  "fa5 ",
+  "fa6 ", "fa7 ", "fs2 ", "fs3 ", "fs4 ", "fs5 ", "fs6 ",  "fs7 ",
+  "fs8 ", "fs9 ", "fs10", "fs11", "ft8 ", "ft9 ", "ft10",  "ft11"
+};
+
 typedef struct RISCVCPUInfo {
     const char *name;
     void (*initfn)(Object *obj);
@@ -112,6 +126,41 @@ static ObjectClass *riscv_cpu_class_by_name(const char *cpu_model)
 static inline void set_feature(CPURISCVState *env, int feature)
 {
     env->features |= 1ULL << feature;
+}
+
+static void riscv_cpu_dump_state(CPUState *cs, FILE *f,
+    fprintf_function cpu_fprintf, int flags)
+{
+    RISCVCPU *cpu = RISCV_CPU(cs);
+    CPURISCVState *env = &cpu->env;
+    int i;
+
+    cpu_fprintf(f, "pc=0x" TARGET_FMT_lx "\n", env->pc);
+    for (i = 0; i < 32; i++) {
+        cpu_fprintf(f, " %s " TARGET_FMT_lx,
+            riscv_int_regnames[i], env->gpr[i]);
+        if ((i & 3) == 3) {
+            cpu_fprintf(f, "\n");
+        }
+    }
+
+#ifndef CONFIG_USER_ONLY
+    cpu_fprintf(f, " %s " TARGET_FMT_lx "\n", "MSTATUS ",
+                env->mstatus);
+    cpu_fprintf(f, " %s " TARGET_FMT_lx "\n", "MIP     ", env->mip);
+    cpu_fprintf(f, " %s " TARGET_FMT_lx "\n", "MIE     ", env->mie);
+#endif
+
+    for (i = 0; i < 32; i++) {
+        if ((i & 3) == 0) {
+            cpu_fprintf(f, "FPR%02d:", i);
+        }
+        cpu_fprintf(f, " %s %016" PRIx64,
+            riscv_fpr_regnames[i], env->fpr[i]);
+        if ((i & 3) == 3) {
+            cpu_fprintf(f, "\n");
+        }
+    }
 }
 
 static void riscv_cpu_set_pc(CPUState *cs, vaddr value)
