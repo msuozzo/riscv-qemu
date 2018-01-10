@@ -197,6 +197,8 @@ static inline int riscv_has_ext(CPURISCVState *env, target_ulong ext)
 
 extern const char * const riscv_int_regnames[];
 extern const char * const riscv_fpr_regnames[];
+extern const char * const riscv_excp_names[];
+extern const char * const riscv_intr_names[];
 
 #define ENV_GET_CPU(e) CPU(riscv_env_get_cpu(e))
 #define ENV_OFFSET offsetof(RISCVCPU, env)

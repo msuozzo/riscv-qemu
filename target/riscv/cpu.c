@@ -41,6 +41,42 @@ const char * const riscv_fpr_regnames[] = {
   "fs8 ", "fs9 ", "fs10", "fs11", "ft8 ", "ft9 ", "ft10",  "ft11"
 };
 
+const char * const riscv_excp_names[] = {
+    "misaligned_fetch",
+    "fault_fetch",
+    "illegal_instruction",
+    "breakpoint",
+    "misaligned_load",
+    "fault_load",
+    "misaligned_store",
+    "fault_store",
+    "user_ecall",
+    "supervisor_ecall",
+    "hypervisor_ecall",
+    "machine_ecall",
+    "exec_page_fault",
+    "load_page_fault",
+    "reserved",
+    "store_page_fault"
+};
+
+const char * const riscv_intr_names[] = {
+    "u_software",
+    "s_software",
+    "h_software",
+    "m_software",
+    "u_timer",
+    "s_timer",
+    "h_timer",
+    "m_timer",
+    "u_external",
+    "s_external",
+    "h_external",
+    "m_external",
+    "coprocessor",
+    "host"
+};
+
 typedef struct RISCVCPUInfo {
     const char *name;
     void (*initfn)(Object *obj);

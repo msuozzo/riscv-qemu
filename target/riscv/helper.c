@@ -378,42 +378,6 @@ int riscv_cpu_handle_mmu_fault(CPUState *cs, vaddr address,
     return ret;
 }
 
-static const char * const riscv_excp_names[16] = {
-    "misaligned_fetch",
-    "fault_fetch",
-    "illegal_instruction",
-    "breakpoint",
-    "misaligned_load",
-    "fault_load",
-    "misaligned_store",
-    "fault_store",
-    "user_ecall",
-    "supervisor_ecall",
-    "hypervisor_ecall",
-    "machine_ecall",
-    "exec_page_fault",
-    "load_page_fault",
-    "reserved",
-    "store_page_fault"
-};
-
-static const char * const riscv_interrupt_names[14] = {
-    "u_software",
-    "s_software",
-    "h_software",
-    "m_software",
-    "u_timer",
-    "s_timer",
-    "h_timer",
-    "m_timer",
-    "u_external",
-    "s_external",
-    "h_external",
-    "m_external",
-    "coprocessor",
-    "host"
-};
-
 /*
  * Handle Traps
  *
@@ -431,7 +395,7 @@ void riscv_cpu_do_interrupt(CPUState *cs)
         int log_cause = cs->exception_index & RISCV_EXCP_INT_MASK;
         if (cs->exception_index & RISCV_EXCP_INT_FLAG) {
             qemu_log_mask(LOG_TRACE, "core   0: trap %s, epc 0x" TARGET_FMT_lx,
-                riscv_interrupt_names[log_cause], env->pc);
+                riscv_intr_names[log_cause], env->pc);
         } else {
             qemu_log_mask(LOG_TRACE, "core   0: intr %s, epc 0x" TARGET_FMT_lx,
                 riscv_excp_names[log_cause], env->pc);
