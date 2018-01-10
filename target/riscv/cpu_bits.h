@@ -1,6 +1,4 @@
-/* Below taken from Spike's decode.h and encoding.h.
- * Using these directly drastically simplifies updating to new versions of the
- * RISC-V privileged specification */
+/* RISC-V ISA constants */
 
 #define get_field(reg, mask) (((reg) & \
                  (target_ulong)(mask)) / ((mask) & ~((mask) << 1)))
@@ -9,12 +7,6 @@
                  (target_ulong)(mask)))
 
 #define PGSHIFT 12
-
-#define FP_RD_NE  0
-#define FP_RD_0   1
-#define FP_RD_DN  2
-#define FP_RD_UP  3
-#define FP_RD_NMM 4
 
 #define FSR_RD_SHIFT 5
 #define FSR_RD   (0x7 << FSR_RD_SHIFT)
@@ -33,6 +25,7 @@
 #define FSR_NXA  (FPEXC_NX << FSR_AEXC_SHIFT)
 #define FSR_AEXC (FSR_NVA | FSR_OFA | FSR_UFA | FSR_DZA | FSR_NXA)
 
+/* CSR numbers */
 #define CSR_FFLAGS 0x1
 #define CSR_FRM 0x2
 #define CSR_FCSR 0x3
@@ -248,6 +241,7 @@
 #define CSR_MHPMCOUNTER30H 0xb9e
 #define CSR_MHPMCOUNTER31H 0xb9f
 
+/* mstatus bits */
 #define MSTATUS_UIE         0x00000001
 #define MSTATUS_SIE         0x00000002
 #define MSTATUS_HIE         0x00000004
@@ -282,6 +276,7 @@
 #define MSTATUS_SD MSTATUS64_SD
 #endif
 
+/* sstatus bits */
 #define SSTATUS_UIE         0x00000001
 #define SSTATUS_SIE         0x00000002
 #define SSTATUS_UPIE        0x00000010
@@ -302,6 +297,7 @@
 #define SSTATUS_SD SSTATUS64_SD
 #endif
 
+/* irqs */
 #define MIP_SSIP            (1 << IRQ_S_SOFT)
 #define MIP_HSIP            (1 << IRQ_H_SOFT)
 #define MIP_MSIP            (1 << IRQ_M_SOFT)
@@ -312,9 +308,9 @@
 #define MIP_HEIP            (1 << IRQ_H_EXT)
 #define MIP_MEIP            (1 << IRQ_M_EXT)
 
-#define SIP_SSIP MIP_SSIP
-#define SIP_STIP MIP_STIP
-#define SIP_SEIP MIP_SEIP
+#define SIP_SSIP            MIP_SSIP
+#define SIP_STIP            MIP_STIP
+#define SIP_SEIP            MIP_SEIP
 
 #define PRV_U 0
 #define PRV_S 1
@@ -419,4 +415,3 @@
 #define PTE_PPN_SHIFT 10
 
 #define PTE_TABLE(PTE) (((PTE) & (PTE_V | PTE_R | PTE_W | PTE_X)) == PTE_V)
-/* end Spike decode.h, encoding.h section */
