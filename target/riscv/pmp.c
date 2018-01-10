@@ -26,19 +26,20 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/log.h"
 #include "qapi/error.h"
 #include "cpu.h"
 #include "qemu-common.h"
 
-/* #define DEBUG_PMP 1 */
+/* #define RISCV_DEBUG_PMP */
 
 #ifndef CONFIG_USER_ONLY
 
-#ifdef DEBUG_PMP
-#define PMP_PRINTF(fmt, ...) \
-do { fprintf(stderr, "pmp: " fmt, ## __VA_ARGS__); } while (0)
+#ifdef RISCV_DEBUG_PMP
+#define PMP_DEBUG(fmt, ...) \
+do { qemu_log_mask(LOG_TRACE, "pmp: " fmt, ## __VA_ARGS__); } while (0)
 #else
-#define PMP_PRINTF(fmt, ...) \
+#define PMP_DEBUG(fmt, ...) \
 do {} while (0)
 #endif
 
@@ -116,10 +117,10 @@ static void pmp_write_cfg(CPURISCVState *env, uint32_t pmp_index, uint8_t val)
             env->pmp_state.pmp[pmp_index].cfg_reg = val;
             pmp_update_rule(env, pmp_index);
         } else {
-            PMP_PRINTF("Ignoring pmpcfg write - locked\n");
+            PMP_DEBUG("%s: ignoring write - locked", __func__);
         }
     } else {
-        PMP_PRINTF("Ignoring pmpcfg write - out of bounds\n");
+        PMP_DEBUG("%s: ignoring write - out of bounds", __func__);
     }
 }
 
@@ -252,8 +253,8 @@ bool pmp_hart_has_privs(CPURISCVState *env, target_ulong addr,
 
         /* partially inside */
         if ((s + e) == 1) {
-            PMP_PRINTF("pmp violation - access is partially in /"
-                " partially out\n");
+            PMP_DEBUG("%s: pmp violation - access is partially in /"
+                " partially out", __func__);
             ret = 0;
             break;
         }
@@ -306,11 +307,11 @@ void pmpcfg_csr_write(CPURISCVState *env, uint32_t reg_index,
     int i;
     uint8_t cfg_val;
 
-    PMP_PRINTF("hart%d pmpcfg_reg%d val: 0x" TARGET_FMT_lx "\n",
-        env->mhartid, reg_index, val);
+    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": reg%d, val: 0x" TARGET_FMT_lx,
+        __func__, env->mhartid, reg_index, val);
 
     if ((reg_index & 1) && (sizeof(target_ulong) == 8)) {
-        PMP_PRINTF("Ignoring pmpcfg write - incorrect address\n");
+        PMP_DEBUG("%s: ignoring write - incorrect address", __func__);
         return;
     }
 
@@ -336,8 +337,8 @@ target_ulong pmpcfg_csr_read(CPURISCVState *env, uint32_t reg_index)
         cfg_val |= (val << (i * 8));
     }
 
-    PMP_PRINTF("hart%d pmpcfg_reg%d, (rval: 0x" TARGET_FMT_lx ")\n",
-        env->mhartid, reg_index, cfg_val);
+    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": reg%d, val: 0x" TARGET_FMT_lx,
+        __func__, env->mhartid, reg_index, cfg_val);
 
     return cfg_val;
 }
@@ -349,8 +350,8 @@ target_ulong pmpcfg_csr_read(CPURISCVState *env, uint32_t reg_index)
 void pmpaddr_csr_write(CPURISCVState *env, uint32_t addr_index,
     target_ulong val)
 {
-    PMP_PRINTF("hart%d addr%d val: 0x" TARGET_FMT_lx "\n",
-        env->mhartid, addr_index, val);
+    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": addr%d, val: 0x" TARGET_FMT_lx,
+        __func__, env->mhartid, addr_index, val);
 
     /* val &= 0x3ffffffffffffful; */
 
@@ -359,10 +360,10 @@ void pmpaddr_csr_write(CPURISCVState *env, uint32_t addr_index,
             env->pmp_state.pmp[addr_index].addr_reg = val;
             pmp_update_rule(env, addr_index);
         } else {
-            PMP_PRINTF("Ignoring pmpaddr write - locked\n");
+            PMP_DEBUG("%s: ignoring write - locked", __func__);
         }
     } else {
-        PMP_PRINTF("Ignoring pmpaddr write - out of bounds\n");
+        PMP_DEBUG("%s: ignoring write - out of bounds", __func__);
     }
 }
 
@@ -372,10 +373,15 @@ void pmpaddr_csr_write(CPURISCVState *env, uint32_t addr_index,
  */
 target_ulong pmpaddr_csr_read(CPURISCVState *env, uint32_t addr_index)
 {
-    PMP_PRINTF("hart%d addr%d (val: 0x" TARGET_FMT_lx ")\n",
-        env->mhartid, addr_index,
+    PMP_DEBUG("%s: hart " TARGET_FMT_ld ": addr%d, val: 0x" TARGET_FMT_lx,
+        __func__, env->mhartid, addr_index,
         env->pmp_state.pmp[addr_index].addr_reg);
-    return env->pmp_state.pmp[addr_index].addr_reg;
+    if (addr_index < MAX_RISCV_PMPS) {
+        return env->pmp_state.pmp[addr_index].addr_reg;
+    } else {
+        PMP_DEBUG("%s: ignoring read - out of bounds", __func__);
+        return 0;
+    }
 }
 
 #endif
