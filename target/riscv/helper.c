@@ -96,7 +96,7 @@ bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
         CPURISCVState *env = &cpu->env;
         int interruptno = riscv_cpu_hw_interrupts_pending(env);
         if (interruptno + 1) {
-            cs->exception_index = 0x70000000U | interruptno;
+            cs->exception_index = RISCV_EXCP_INT_FLAG | interruptno;
             riscv_cpu_do_interrupt(cs);
             return true;
         }
@@ -430,9 +430,9 @@ void riscv_cpu_do_interrupt(CPUState *cs)
     CPURISCVState *env = &cpu->env;
 
     #ifdef RISCV_DEBUG_INTERRUPT
-    if (cs->exception_index & 0x70000000) {
+    if (cs->exception_index & RISCV_EXCP_INT_FLAG) {
         fprintf(stderr, "core   0: exception trap_%s, epc 0x" TARGET_FMT_lx "\n"
-                , riscv_interrupt_names[cs->exception_index & 0x0fffffff],
+                , riscv_interrupt_names[cs->exception_index & RISCV_EXCP_INT_MASK],
                 env->pc);
     } else {
         fprintf(stderr, "core   0: exception trap_%s, epc 0x" TARGET_FMT_lx "\n"
@@ -441,10 +441,10 @@ void riscv_cpu_do_interrupt(CPUState *cs)
     #endif
 
     target_ulong fixed_cause = 0;
-    if (cs->exception_index & (0x70000000)) {
+    if (cs->exception_index & (RISCV_EXCP_INT_FLAG)) {
         /* hacky for now. the MSB (bit 63) indicates interrupt but cs->exception
            index is only 32 bits wide */
-        fixed_cause = cs->exception_index & 0x0FFFFFFF;
+        fixed_cause = cs->exception_index & RISCV_EXCP_INT_MASK;
         fixed_cause |= ((target_ulong)1) << (TARGET_LONG_BITS - 1);
     } else {
         /* fixup User ECALL -> correct priv ECALL */
