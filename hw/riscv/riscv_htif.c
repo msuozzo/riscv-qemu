@@ -27,6 +27,7 @@
 
 #include "qemu/osdep.h"
 #include "qapi/error.h"
+#include "qemu/log.h"
 #include "hw/sysbus.h"
 #include "hw/char/serial.h"
 #include "chardev/char.h"
@@ -38,8 +39,14 @@
 #include "hw/riscv/riscv_elf.h"
 
 #define ENABLE_CHARDEV
-/*#define DEBUG_CHARDEV */
-/*#define DEBUG_HTIF */
+
+#define RISCV_DEBUG_HTIF 0
+#define HTIF_DEBUG(fmt, ...)                                         \
+  do {                                                               \
+    if (RISCV_DEBUG_HTIF) {                                          \
+      qemu_log_mask(LOG_TRACE, "%s: " fmt, __func__, ##__VA_ARGS__); \
+    }                                                                \
+  } while (0)
 
 #ifdef ENABLE_CHARDEV
 /*
@@ -56,20 +63,15 @@ static int htif_can_recv(void *opaque)
  */
 static void htif_recv(void *opaque, const uint8_t *buf, int size)
 {
+    HTIFState *htifstate = opaque;
+
     if (size != 1) {
         return;
     }
 
-    HTIFState *htifstate = opaque;
-
-    #ifdef DEBUG_CHARDEV
-    if (htifstate->env->mfromhost != 0x0) {
-        fprintf(stderr, "recv handler: fromhost was not ready to \
-                         accept input\n");
-        fprintf(stderr, "recv handler: prev value was: %016lx\n",
-                htifstate->env->mfromhost);
-    }
-    #endif
+    /* TODO - we need to check whether mfromhost is zero which indicates
+              the device is ready to receive. The current implementation
+              will drop characters */
 
     uint64_t val_written = htifstate->pending_read;
     uint64_t resp = 0x100 | *buf;
@@ -113,9 +115,7 @@ static void dma_strcopy(HTIFState *htifstate, char *str, hwaddr phys_addr)
 
 static void htif_handle_tohost_write(HTIFState *htifstate, uint64_t val_written)
 {
-    #ifdef DEBUG_HTIF
-    fprintf(stderr, "TOHOST WRITE WITH val 0x%016lx\n", val_written);
-    #endif
+    HTIF_DEBUG("TOHOST WRITE WITH val 0x%016" PRIx64, val_written);
 
     uint8_t device = val_written >> 56;
     uint8_t cmd = val_written >> 48;
@@ -127,10 +127,8 @@ static void htif_handle_tohost_write(HTIFState *htifstate, uint64_t val_written)
     int resp;
 
     resp = 0; /* stop gcc complaining */
-    #ifdef DEBUG_HTIF
-    fprintf(stderr, "mtohost write:\n-device: %d\n-cmd: %d\n-what: %02lx\n\
-                     -payload: %016lx\n", device, cmd, payload & 0xFF, payload);
-    #endif
+    HTIF_DEBUG("mtohost write: device: %d cmd: %d what: %02" PRIx64
+        " -payload: %016" PRIx64, device, cmd, payload & 0xFF, payload);
 
     /*
      * Currently, there is a fixed mapping of devices:
@@ -140,40 +138,31 @@ static void htif_handle_tohost_write(HTIFState *htifstate, uint64_t val_written)
     if (unlikely(device == 0x0)) {
         /* frontend syscall handler, only test pass/fail support */
         if (cmd == 0x0) {
-            #ifdef DEBUG_HTIF
-            fprintf(stderr, "frontend syscall handler\n");
-            #endif
+            HTIF_DEBUG("frontend syscall handler");
             if (payload & 0x1) {
                 /* exit code */
                 int exit_code = payload >> 1;
                 if (exit_code) {
-                    printf("*** FAILED *** (tohost = %d)\n", exit_code);
+                    qemu_log("*** FAILED *** (tohost = %d)", exit_code);
                 }
                 exit(exit_code);
             }
-            fprintf(stderr, "pk syscall proxy not supported\n");
+            qemu_log_mask(LOG_UNIMP, "pk syscall proxy not supported");
         } else if (cmd == 0xFF) {
             /* use what */
             if (what == 0xFF) {
-                #ifdef DEBUG_HTIF
-                fprintf(stderr, "registering name\n");
-                #endif
+                HTIF_DEBUG("registering name");
                 dma_strcopy(htifstate, (char *)"syscall_proxy", real_addr);
             } else if (what == 0x0) {
-                #ifdef DEBUG_HTIF
-                fprintf(stderr, "registering syscall cmd\n");
-                #endif
+                HTIF_DEBUG("registering syscall cmd");
                 dma_strcopy(htifstate, (char *)"syscall", real_addr);
             } else {
-                #ifdef DEBUG_HTIF
-                fprintf(stderr, "registering end of cmds list\n");
-                #endif
+                HTIF_DEBUG("registering end of cmds list");
                 dma_strcopy(htifstate, (char *)"", real_addr);
             }
             resp = 0x1; /* write to indicate device name placed */
         } else {
-            fprintf(stderr, "HTIF device %d: UNKNOWN COMMAND\n", device);
-            exit(1);
+            qemu_log("HTIF device %d: UNKNOWN COMMAND", device);
         }
     } else if (likely(device == 0x1)) {
         /* HTIF Console */
@@ -190,43 +179,31 @@ static void htif_handle_tohost_write(HTIFState *htifstate, uint64_t val_written)
         } else if (cmd == 0xFF) {
             /* use what */
             if (what == 0xFF) {
-                #ifdef DEBUG_HTIF
-                fprintf(stderr, "registering name\n");
-                #endif
+                HTIF_DEBUG("registering name");
                 dma_strcopy(htifstate, (char *)"bcd", real_addr);
             } else if (what == 0x0) {
-                #ifdef DEBUG_HTIF
-                fprintf(stderr, "registering read cmd\n");
-                #endif
+                HTIF_DEBUG("registering read cmd");
                 dma_strcopy(htifstate, (char *)"read", real_addr);
             } else if (what == 0x1) {
-                #ifdef DEBUG_HTIF
-                fprintf(stderr, "registering write cmd\n");
-                #endif
+                HTIF_DEBUG("registering write cmd");
                 dma_strcopy(htifstate, (char *)"write", real_addr);
             } else {
-                #ifdef DEBUG_HTIF
-                fprintf(stderr, "registering end of cmds list\n");
-                #endif
+                HTIF_DEBUG("registering end of cmds list");
                 dma_strcopy(htifstate, (char *)"", real_addr);
             }
             resp = 0x1; /* write to indicate device name placed */
         } else {
-            fprintf(stderr, "HTIF device %d: UNKNOWN COMMAND\n", device);
-            exit(1);
+            qemu_log("HTIF device %d: UNKNOWN COMMAND", device);
         }
     /* all other devices */
     } else if (device == 0x2 && cmd == 0xFF && what == 0xFF) {
-        #ifdef DEBUG_HTIF
-        fprintf(stderr, "registering no device as last\n");
-        #endif
+        HTIF_DEBUG("registering no device as last");
         stb_p((void *)(htifstate->main_mem_ram_ptr + real_addr), 0);
         resp = 0x1; /* write to indicate device name placed */
     } else {
-        fprintf(stderr, "HTIF UNKNOWN DEVICE OR COMMAND!\n");
-        fprintf(stderr, "device: %d\ncmd: %d\nwhat: %02" PRIx64 "\n"
-            "payload: %016" PRIx64 "\n", device, cmd, payload & 0xFF, payload);
-        exit(1);
+        qemu_log("HTIF UNKNOWN DEVICE OR COMMAND");
+        HTIF_DEBUG("device: %d cmd: %d what: %02" PRIx64
+            " payload: %016" PRIx64, device, cmd, payload & 0xFF, payload);
     }
     /*
      * - latest bbl does not set fromhost to 0 if there is a value in tohost
@@ -264,9 +241,9 @@ static uint64_t htif_mm_read(void *opaque, hwaddr addr, unsigned size)
     } else if (addr == FROMHOST_OFFSET2) {
         return (htifstate->env->mfromhost >> 32) & 0xFFFFFFFF;
     } else {
-        printf("Invalid htif register address %016" PRIx64 "\n",
-               (uint64_t)addr);
-        exit(1);
+        qemu_log("Invalid htif read: address %016" PRIx64,
+            (uint64_t)addr);
+        return 0;
     }
 }
 
@@ -297,9 +274,8 @@ static void htif_mm_write(void *opaque, hwaddr addr,
         }
         htifstate->fromhost_inprogress = 0;
     } else {
-        printf("Invalid htif register address %016" PRIx64 "\n",
-               (uint64_t)addr);
-        exit(1);
+        qemu_log("Invalid htif write: address %016" PRIx64,
+            (uint64_t)addr);
     }
 }
 
