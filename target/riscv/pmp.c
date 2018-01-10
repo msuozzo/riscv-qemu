@@ -172,7 +172,7 @@ static void pmp_update_rule(CPURISCVState *env, uint32_t pmp_index)
     target_ulong ea = 0u;
 
     if (pmp_index >= 1u) {
-        prev_addr = env->pmp_state.pmp[pmp_index].addr_reg;
+        prev_addr = env->pmp_state.pmp[pmp_index - 1].addr_reg;
     }
 
     switch (pmp_get_a_field(this_cfg)) {
