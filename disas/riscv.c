@@ -2983,9 +2983,15 @@ static void decode_inst_decompress_rv128(rv_decode *dec)
 static void decode_inst_decompress(rv_decode *dec, rv_isa isa)
 {
     switch (isa) {
-    case rv32: decode_inst_decompress_rv32(dec); break;
-    case rv64: decode_inst_decompress_rv64(dec); break;
-    case rv128: decode_inst_decompress_rv128(dec); break;
+    case rv32:
+        decode_inst_decompress_rv32(dec);
+        break;
+    case rv64:
+        decode_inst_decompress_rv64(dec);
+        break;
+    case rv128:
+        decode_inst_decompress_rv128(dec);
+        break;
     }
 }
 
