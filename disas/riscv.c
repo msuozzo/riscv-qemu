@@ -1980,155 +1980,189 @@ static void decode_inst_opcode(rv_decode *dec, rv_isa isa)
 
 /* operand extractors */
 
-static uint32_t operand_rd(rv_inst inst) {
+static uint32_t operand_rd(rv_inst inst)
+{
     return (inst << 52) >> 59;
 }
 
-static uint32_t operand_rs1(rv_inst inst) {
+static uint32_t operand_rs1(rv_inst inst)
+{
     return (inst << 44) >> 59;
 }
 
-static uint32_t operand_rs2(rv_inst inst) {
+static uint32_t operand_rs2(rv_inst inst)
+{
     return (inst << 39) >> 59;
 }
 
-static uint32_t operand_rs3(rv_inst inst) {
+static uint32_t operand_rs3(rv_inst inst)
+{
     return (inst << 32) >> 59;
 }
 
-static uint32_t operand_aq(rv_inst inst) {
+static uint32_t operand_aq(rv_inst inst)
+{
     return (inst << 37) >> 63;
 }
 
-static uint32_t operand_rl(rv_inst inst) {
+static uint32_t operand_rl(rv_inst inst)
+{
     return (inst << 38) >> 63;
 }
 
-static uint32_t operand_pred(rv_inst inst) {
+static uint32_t operand_pred(rv_inst inst)
+{
     return (inst << 36) >> 60;
 }
 
-static uint32_t operand_succ(rv_inst inst) {
+static uint32_t operand_succ(rv_inst inst)
+{
     return (inst << 40) >> 60;
 }
 
-static uint32_t operand_rm(rv_inst inst) {
+static uint32_t operand_rm(rv_inst inst)
+{
     return (inst << 49) >> 61;
 }
 
-static uint32_t operand_shamt5(rv_inst inst) {
+static uint32_t operand_shamt5(rv_inst inst)
+{
     return (inst << 39) >> 59;
 }
 
-static uint32_t operand_shamt6(rv_inst inst) {
+static uint32_t operand_shamt6(rv_inst inst)
+{
     return (inst << 38) >> 58;
 }
 
-static uint32_t operand_shamt7(rv_inst inst) {
+static uint32_t operand_shamt7(rv_inst inst)
+{
     return (inst << 37) >> 57;
 }
 
-static uint32_t operand_crdq(rv_inst inst) {
+static uint32_t operand_crdq(rv_inst inst)
+{
     return (inst << 59) >> 61;
 }
 
-static uint32_t operand_crs1q(rv_inst inst) {
+static uint32_t operand_crs1q(rv_inst inst)
+{
     return (inst << 54) >> 61;
 }
 
-static uint32_t operand_crs1rdq(rv_inst inst) {
+static uint32_t operand_crs1rdq(rv_inst inst)
+{
     return (inst << 54) >> 61;
 }
 
-static uint32_t operand_crs2q(rv_inst inst) {
+static uint32_t operand_crs2q(rv_inst inst)
+{
     return (inst << 59) >> 61;
 }
 
-static uint32_t operand_crd(rv_inst inst) {
+static uint32_t operand_crd(rv_inst inst)
+{
     return (inst << 52) >> 59;
 }
 
-static uint32_t operand_crs1(rv_inst inst) {
+static uint32_t operand_crs1(rv_inst inst)
+{
     return (inst << 52) >> 59;
 }
 
-static uint32_t operand_crs1rd(rv_inst inst) {
+static uint32_t operand_crs1rd(rv_inst inst)
+{
     return (inst << 52) >> 59;
 }
 
-static uint32_t operand_crs2(rv_inst inst) {
+static uint32_t operand_crs2(rv_inst inst)
+{
     return (inst << 57) >> 59;
 }
 
-static uint32_t operand_cimmsh5(rv_inst inst) {
+static uint32_t operand_cimmsh5(rv_inst inst)
+{
     return (inst << 57) >> 59;
 }
 
-static uint32_t operand_csr12(rv_inst inst) {
+static uint32_t operand_csr12(rv_inst inst)
+{
     return (inst << 32) >> 52;
 }
 
-static int32_t operand_imm12(rv_inst inst) {
+static int32_t operand_imm12(rv_inst inst)
+{
     return ((int64_t)inst << 32) >> 52;
 }
 
-static int32_t operand_imm20(rv_inst inst) {
+static int32_t operand_imm20(rv_inst inst)
+{
     return (((int64_t)inst << 32) >> 44) << 12;
 }
 
-static int32_t operand_jimm20(rv_inst inst) {
+static int32_t operand_jimm20(rv_inst inst)
+{
     return (((int64_t)inst << 32) >> 63) << 20 |
         ((inst << 33) >> 54) << 1 |
         ((inst << 43) >> 63) << 11 |
         ((inst << 44) >> 56) << 12;
 }
 
-static int32_t operand_simm12(rv_inst inst) {
+static int32_t operand_simm12(rv_inst inst)
+{
     return (((int64_t)inst << 32) >> 57) << 5 |
         (inst << 52) >> 59;
 }
 
-static int32_t operand_sbimm12(rv_inst inst) {
+static int32_t operand_sbimm12(rv_inst inst)
+{
     return (((int64_t)inst << 32) >> 63) << 12 |
         ((inst << 33) >> 58) << 5 |
         ((inst << 52) >> 60) << 1 |
         ((inst << 56) >> 63) << 11;
 }
 
-static uint32_t operand_cimmsh6(rv_inst inst) {
+static uint32_t operand_cimmsh6(rv_inst inst)
+{
     return ((inst << 51) >> 63) << 5 |
         (inst << 57) >> 59;
 }
 
-static int32_t operand_cimmi(rv_inst inst) {
+static int32_t operand_cimmi(rv_inst inst)
+{
     return (((int64_t)inst << 51) >> 63) << 5 |
         (inst << 57) >> 59;
 }
 
-static int32_t operand_cimmui(rv_inst inst) {
+static int32_t operand_cimmui(rv_inst inst)
+{
     return (((int64_t)inst << 51) >> 63) << 17 |
         ((inst << 57) >> 59) << 12;
 }
 
-static uint32_t operand_cimmlwsp(rv_inst inst) {
+static uint32_t operand_cimmlwsp(rv_inst inst)
+{
     return ((inst << 51) >> 63) << 5 |
         ((inst << 57) >> 61) << 2 |
         ((inst << 60) >> 62) << 6;
 }
 
-static uint32_t operand_cimmldsp(rv_inst inst) {
+static uint32_t operand_cimmldsp(rv_inst inst)
+{
     return ((inst << 51) >> 63) << 5 |
         ((inst << 57) >> 62) << 3 |
         ((inst << 59) >> 61) << 6;
 }
 
-static uint32_t operand_cimmlqsp(rv_inst inst) {
+static uint32_t operand_cimmlqsp(rv_inst inst)
+{
     return ((inst << 51) >> 63) << 5 |
         ((inst << 57) >> 63) << 4 |
         ((inst << 58) >> 60) << 6;
 }
 
-static int32_t operand_cimm16sp(rv_inst inst) {
+static int32_t operand_cimm16sp(rv_inst inst)
+{
     return (((int64_t)inst << 51) >> 63) << 9 |
         ((inst << 57) >> 63) << 4 |
         ((inst << 58) >> 63) << 6 |
@@ -2136,7 +2170,8 @@ static int32_t operand_cimm16sp(rv_inst inst) {
         ((inst << 61) >> 63) << 5;
 }
 
-static int32_t operand_cimmj(rv_inst inst) {
+static int32_t operand_cimmj(rv_inst inst)
+{
     return (((int64_t)inst << 51) >> 63) << 11 |
         ((inst << 52) >> 63) << 4 |
         ((inst << 53) >> 62) << 8 |
@@ -2147,7 +2182,8 @@ static int32_t operand_cimmj(rv_inst inst) {
         ((inst << 61) >> 63) << 5;
 }
 
-static int32_t operand_cimmb(rv_inst inst) {
+static int32_t operand_cimmb(rv_inst inst)
+{
     return (((int64_t)inst << 51) >> 63) << 8 |
         ((inst << 52) >> 62) << 3 |
         ((inst << 57) >> 62) << 6 |
@@ -2155,40 +2191,47 @@ static int32_t operand_cimmb(rv_inst inst) {
         ((inst << 61) >> 63) << 5;
 }
 
-static uint32_t operand_cimmswsp(rv_inst inst) {
+static uint32_t operand_cimmswsp(rv_inst inst)
+{
     return ((inst << 51) >> 60) << 2 |
         ((inst << 55) >> 62) << 6;
 }
 
-static uint32_t operand_cimmsdsp(rv_inst inst) {
+static uint32_t operand_cimmsdsp(rv_inst inst)
+{
     return ((inst << 51) >> 61) << 3 |
         ((inst << 54) >> 61) << 6;
 }
 
-static uint32_t operand_cimmsqsp(rv_inst inst) {
+static uint32_t operand_cimmsqsp(rv_inst inst)
+{
     return ((inst << 51) >> 62) << 4 |
         ((inst << 53) >> 60) << 6;
 }
 
-static uint32_t operand_cimm4spn(rv_inst inst) {
+static uint32_t operand_cimm4spn(rv_inst inst)
+{
     return ((inst << 51) >> 62) << 4 |
         ((inst << 53) >> 60) << 6 |
         ((inst << 57) >> 63) << 2 |
         ((inst << 58) >> 63) << 3;
 }
 
-static uint32_t operand_cimmw(rv_inst inst) {
+static uint32_t operand_cimmw(rv_inst inst)
+{
     return ((inst << 51) >> 61) << 3 |
         ((inst << 57) >> 63) << 2 |
         ((inst << 58) >> 63) << 6;
 }
 
-static uint32_t operand_cimmd(rv_inst inst) {
+static uint32_t operand_cimmd(rv_inst inst)
+{
     return ((inst << 51) >> 61) << 3 |
         ((inst << 57) >> 62) << 6;
 }
 
-static uint32_t operand_cimmq(rv_inst inst) {
+static uint32_t operand_cimmq(rv_inst inst)
+{
     return ((inst << 51) >> 62) << 4 |
         ((inst << 53) >> 63) << 8 |
         ((inst << 57) >> 62) << 6;
