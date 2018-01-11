@@ -41,12 +41,12 @@
 #define ENABLE_CHARDEV
 
 #define RISCV_DEBUG_HTIF 0
-#define HTIF_DEBUG(fmt, ...)                                         \
-  do {                                                               \
-    if (RISCV_DEBUG_HTIF) {                                          \
-      qemu_log_mask(LOG_TRACE, "%s: " fmt, __func__, ##__VA_ARGS__); \
-    }                                                                \
-  } while (0)
+#define HTIF_DEBUG(fmt, ...)                                               \
+    do {                                                                   \
+        if (RISCV_DEBUG_HTIF) {                                            \
+            qemu_log_mask(LOG_TRACE, "%s: " fmt, __func__, ##__VA_ARGS__); \
+        }                                                                  \
+    } while (0)
 
 #ifdef ENABLE_CHARDEV
 /*

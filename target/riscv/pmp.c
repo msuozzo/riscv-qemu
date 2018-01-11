@@ -38,12 +38,12 @@
 #ifndef CONFIG_USER_ONLY
 
 #define RISCV_DEBUG_PMP 0
-#define PMP_DEBUG(fmt, ...)                                          \
-  do {                                                               \
-    if (RISCV_DEBUG_PMP) {                                           \
-      qemu_log_mask(LOG_TRACE, "%s: " fmt, __func__, ##__VA_ARGS__); \
-    }                                                                \
-  } while (0)
+#define PMP_DEBUG(fmt, ...)                                                \
+    do {                                                                   \
+        if (RISCV_DEBUG_PMP) {                                             \
+            qemu_log_mask(LOG_TRACE, "%s: " fmt, __func__, ##__VA_ARGS__); \
+        }                                                                  \
+    } while (0)
 
 static void pmp_write_cfg(CPURISCVState *env, uint32_t addr_index,
     uint8_t val);
