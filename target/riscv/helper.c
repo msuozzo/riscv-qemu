@@ -116,7 +116,7 @@ bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
  *
  */
 static int get_physical_address(CPURISCVState *env, hwaddr *physical,
-                                int *prot, target_ulong address,
+                                int *prot, target_ulong addr,
                                 int access_type, int mmu_idx)
 {
     /* NOTE: the env->pc value visible here will not be
@@ -129,12 +129,11 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
     CPUState *cs = CPU(riscv_env_get_cpu(env));
 
     if (mode == PRV_M) {
-        *physical = address;
+        *physical = addr;
         *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
         return TRANSLATE_SUCCESS;
     }
 
-    target_ulong addr = address;
     target_ulong base;
 
     int levels, ptidxbits, ptesize, vm, sum;
