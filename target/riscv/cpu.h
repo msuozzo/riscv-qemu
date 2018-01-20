@@ -204,10 +204,11 @@ extern const char * const riscv_intr_names[];
 #define ENV_OFFSET offsetof(RISCVCPU, env)
 
 void riscv_cpu_do_interrupt(CPUState *cpu);
-hwaddr riscv_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 int riscv_cpu_gdb_read_register(CPUState *cpu, uint8_t *buf, int reg);
 int riscv_cpu_gdb_write_register(CPUState *cpu, uint8_t *buf, int reg);
 bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request);
+int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch);
+hwaddr riscv_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 void  riscv_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
                                     MMUAccessType access_type, int mmu_idx,
                                     uintptr_t retaddr);
@@ -215,10 +216,11 @@ void  riscv_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
 void riscv_cpu_unassigned_access(CPUState *cpu, hwaddr addr, bool is_write,
         bool is_exec, int unused, unsigned size);
 #endif
+int riscv_cpu_handle_mmu_fault(CPUState *cpu, vaddr address, int rw,
+                              int mmu_idx);
 
 char *riscv_isa_string(RISCVCPU *cpu);
 void riscv_cpu_list(FILE *f, fprintf_function cpu_fprintf);
-int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch);
 
 #define cpu_init(cpu_model) cpu_generic_init(TYPE_RISCV_CPU, cpu_model)
 #define cpu_signal_handler cpu_riscv_signal_handler
@@ -239,9 +241,6 @@ void QEMU_NORETURN do_raise_exception_err(CPURISCVState *env,
 /* hw/riscv/sifive_clint.c  - supplies instret by approximating */
 uint64_t cpu_riscv_read_instret(CPURISCVState *env);
 uint64_t cpu_riscv_read_rtc(void);
-
-int riscv_cpu_handle_mmu_fault(CPUState *cpu, vaddr address, int rw,
-                              int mmu_idx);
 
 static inline void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
                                         target_ulong *cs_base, uint32_t *flags)
