@@ -87,7 +87,6 @@ static void riscv_any_cpu_init(Object *obj)
 {
     CPURISCVState *env = &RISCV_CPU(obj)->env;
     env->misa = RVXLEN | RVI | RVM | RVA | RVF | RVD | RVC | RVU;
-    env->misa_mask = env->misa;
     env->user_ver = USER_VERSION_2_02_0;
     env->priv_ver = PRIV_VERSION_1_10_0;
 }
@@ -96,7 +95,6 @@ static void riscv_imafdcsu_priv1_9_cpu_init(Object *obj)
 {
     CPURISCVState *env = &RISCV_CPU(obj)->env;
     env->misa = RVXLEN | RVI | RVM | RVA | RVF | RVD | RVC | RVS | RVU;
-    env->misa_mask = env->misa;
     env->user_ver = USER_VERSION_2_02_0;
     env->priv_ver = PRIV_VERSION_1_09_1;
 }
@@ -105,7 +103,6 @@ static void riscv_imafdcsu_priv1_10_cpu_init(Object *obj)
 {
     CPURISCVState *env = &RISCV_CPU(obj)->env;
     env->misa = RVXLEN | RVI | RVM | RVA | RVF | RVD | RVC | RVS | RVU;
-    env->misa_mask = env->misa;
     env->user_ver = USER_VERSION_2_02_0;
     env->priv_ver = PRIV_VERSION_1_10_0;
 }
@@ -114,7 +111,6 @@ static void riscv_imacu_priv1_10_cpu_init(Object *obj)
 {
     CPURISCVState *env = &RISCV_CPU(obj)->env;
     env->misa = RVXLEN | RVI | RVM | RVA | RVC | RVU;
-    env->misa_mask = env->misa;
     env->user_ver = USER_VERSION_2_02_0;
     env->priv_ver = PRIV_VERSION_1_10_0;
 }
@@ -123,7 +119,6 @@ static void riscv_imac_priv1_10_cpu_init(Object *obj)
 {
     CPURISCVState *env = &RISCV_CPU(obj)->env;
     env->misa = RVXLEN | RVI | RVM | RVA | RVC;
-    env->misa_mask = env->misa;
     env->user_ver = USER_VERSION_2_02_0;
     env->priv_ver = PRIV_VERSION_1_10_0;
 }

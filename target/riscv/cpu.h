@@ -90,7 +90,6 @@ struct CPURISCVState {
 
     target_ulong user_ver;
     target_ulong priv_ver;
-    target_ulong misa_mask;
     target_ulong misa;
 
 #ifdef CONFIG_USER_ONLY

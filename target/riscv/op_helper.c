@@ -315,20 +315,8 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         env->mbadaddr = val_to_write;
         break;
     case CSR_MISA: {
-        if (!(val_to_write & (1L << ('F' - 'A')))) {
-            val_to_write &= ~(1L << ('D' - 'A'));
-        }
-
-        /* allow MAFDC bits in MISA to be modified */
-        target_ulong mask = 0;
-        mask |= 1L << ('M' - 'A');
-        mask |= 1L << ('A' - 'A');
-        mask |= 1L << ('F' - 'A');
-        mask |= 1L << ('D' - 'A');
-        mask |= 1L << ('C' - 'A');
-        mask &= env->misa_mask;
-
-        env->misa = (val_to_write & mask) | (env->misa & ~mask);
+        qemu_log_mask(LOG_UNIMP, "CSR_MISA: misa writes not supported");
+        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
         break;
     }
     case CSR_PMPCFG0:
