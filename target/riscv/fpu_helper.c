@@ -421,7 +421,7 @@ uint64_t helper_fcvt_s_d(CPURISCVState *env, uint64_t rs1, uint64_t rm)
     set_fp_round_mode(env, rm);
     rs1 = float64_to_float32(rs1, &env->fp_status);
     set_fp_exceptions(env);
-    return rs1;
+    return float32_maybe_silence_nan(rs1, &env->fp_status);
 }
 
 uint64_t helper_fcvt_d_s(CPURISCVState *env, uint64_t rs1, uint64_t rm)
@@ -430,7 +430,7 @@ uint64_t helper_fcvt_d_s(CPURISCVState *env, uint64_t rs1, uint64_t rm)
     set_fp_round_mode(env, rm);
     rs1 = float32_to_float64(rs1, &env->fp_status);
     set_fp_exceptions(env);
-    return rs1;
+    return float64_maybe_silence_nan(rs1, &env->fp_status);
 }
 
 uint64_t helper_fsqrt_d(CPURISCVState *env, uint64_t frs1, uint64_t rm)
