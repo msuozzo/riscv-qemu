@@ -214,19 +214,16 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
             target_ulong vpn = addr >> PGSHIFT;
             *physical = (ppn | (vpn & ((1L << ptshift) - 1))) << PGSHIFT;
 
-            /* we do not give all prots indicated by the PTE
-             * this is because future accesses need to do things like set the
-             * dirty bit on the PTE
-             *
-             * at this point, we assume that protection checks have occurred */
-            if ((pte & PTE_X) && access_type == MMU_INST_FETCH) {
-                *prot |= PAGE_EXEC;
-            } else if ((pte & PTE_W) && access_type == MMU_DATA_STORE) {
-                *prot |= PAGE_WRITE;
-            } else if ((pte & PTE_R) && access_type == MMU_DATA_LOAD) {
+            if ((pte & PTE_R)) {
                 *prot |= PAGE_READ;
-            } else {
-                g_assert_not_reached();
+            }
+            if ((pte & PTE_X)) {
+                *prot |= PAGE_EXEC;
+            }
+            /* only add write permission on stores so that we
+               get a page table walk to update the dirty bit */
+            if ((pte & PTE_W) && access_type == MMU_DATA_STORE) {
+                *prot |= PAGE_WRITE;
             }
             return TRANSLATE_SUCCESS;
         }
