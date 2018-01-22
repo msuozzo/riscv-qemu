@@ -30,22 +30,7 @@ int riscv_cpu_mmu_index(CPURISCVState *env, bool ifetch)
 #ifdef CONFIG_USER_ONLY
     return 0;
 #else
-    target_ulong mode = env->priv;
-    if (!ifetch) {
-        if (get_field(env->mstatus, MSTATUS_MPRV)) {
-            mode = get_field(env->mstatus, MSTATUS_MPP);
-        }
-    }
-    if (env->priv_ver >= PRIV_VERSION_1_10_0) {
-        if (get_field(env->satp, SATP_MODE) == VM_1_10_MBARE) {
-            mode = PRV_M;
-        }
-    } else {
-        if (get_field(env->mstatus, MSTATUS_VM) == VM_1_09_MBARE) {
-            mode = PRV_M;
-        }
-    }
-    return mode;
+    return env->priv;
 #endif
 }
 
@@ -123,10 +108,13 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
      * correct, but the value visible to the exception handler
      * (riscv_cpu_do_interrupt) is correct */
 
-    const int mode = mmu_idx;
+    int mode = mmu_idx;
 
-    *prot = 0;
-    CPUState *cs = CPU(riscv_env_get_cpu(env));
+    if (mode == PRV_M && access_type != MMU_INST_FETCH) {
+        if (get_field(env->mstatus, MSTATUS_MPRV)) {
+            mode = get_field(env->mstatus, MSTATUS_MPP);
+        }
+    }
 
     if (mode == PRV_M) {
         *physical = addr;
@@ -134,8 +122,9 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
         return TRANSLATE_SUCCESS;
     }
 
-    target_ulong base;
+    *prot = 0;
 
+    target_ulong base;
     int levels, ptidxbits, ptesize, vm, sum;
     int mxr = get_field(env->mstatus, MSTATUS_MXR);
 
@@ -153,7 +142,9 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
         case VM_1_10_SV57:
           levels = 5; ptidxbits = 9; ptesize = 8; break;
         case VM_1_10_MBARE:
-          /* cpu_mmu_index returns PRV_M for S-Mode bare */
+            *physical = addr;
+            *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
+            return TRANSLATE_SUCCESS;
         default:
           g_assert_not_reached();
         }
@@ -169,12 +160,15 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
         case VM_1_09_SV48:
           levels = 4; ptidxbits = 9; ptesize = 8; break;
         case VM_1_09_MBARE:
-          /* cpu_mmu_index returns PRV_M for S-Mode bare */
+            *physical = addr;
+            *prot = PAGE_READ | PAGE_WRITE | PAGE_EXEC;
+            return TRANSLATE_SUCCESS;
         default:
           g_assert_not_reached();
         }
     }
 
+    CPUState *cs = CPU(riscv_env_get_cpu(env));
     int va_bits = PGSHIFT + levels * ptidxbits;
     target_ulong mask = (1L << (TARGET_LONG_BITS - (va_bits - 1))) - 1;
     target_ulong masked_msbs = (addr >> (va_bits - 1)) & mask;
