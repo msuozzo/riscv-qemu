@@ -204,10 +204,13 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
                   !(mxr && (pte & PTE_X)) : !((pte & PTE_R) && (pte & PTE_W))) {
             break;
         } else {
-            /* set accessed and possibly dirty bits.
-               we only put it in the TLB if it has the right stuff */
-            stq_phys(cs->as, pte_addr, ldq_phys(cs->as, pte_addr) | PTE_A |
-                    ((access_type == MMU_DATA_STORE) * PTE_D));
+            /* if necessary, set accessed and dirty bits. */
+            target_ulong updated_pte = pte | PTE_A |
+                (access_type == MMU_DATA_STORE ? PTE_D : 0);
+            if (updated_pte != pte) {
+                /* NOTE: this should be atomic e.g. use cmpxchg */
+                stq_phys(cs->as, pte_addr, pte);
+            }
 
             /* for superpage mappings, make a fake leaf PTE for the TLB's
                benefit. */
