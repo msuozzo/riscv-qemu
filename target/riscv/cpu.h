@@ -211,10 +211,6 @@ hwaddr riscv_cpu_get_phys_page_debug(CPUState *cpu, vaddr addr);
 void  riscv_cpu_do_unaligned_access(CPUState *cs, vaddr addr,
                                     MMUAccessType access_type, int mmu_idx,
                                     uintptr_t retaddr);
-#if !defined(CONFIG_USER_ONLY)
-void riscv_cpu_unassigned_access(CPUState *cpu, hwaddr addr, bool is_write,
-        bool is_exec, int unused, unsigned size);
-#endif
 int riscv_cpu_handle_mmu_fault(CPUState *cpu, vaddr address, int rw,
                               int mmu_idx);
 
