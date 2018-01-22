@@ -242,7 +242,7 @@ static inline void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
 {
     *pc = env->pc;
     *cs_base = 0;
-    *flags = 0; /* necessary to avoid compiler warning */
+    *flags = cpu_mmu_index(env, false);
 }
 
 static inline int riscv_mstatus_fs(CPURISCVState *env)
