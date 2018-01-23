@@ -325,23 +325,23 @@ uint64_t helper_fcvt_s_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 #endif
 
 /* adapted from spike */
-#define isNaNF32UI(ui) (0xFF000000 < (uint32_t)((uint_fast32_t)ui << 1))
+#define isNaNF32UI(ui) (0xFF000000 < (uint32_t)((uint32_t)ui << 1))
 #define signF32UI(a) ((bool)((uint32_t)a >> 31))
-#define expF32UI(a) ((int_fast16_t)(a >> 23) & 0xFF)
+#define expF32UI(a) ((int16_t)(a >> 23) & 0xFF)
 #define fracF32UI(a) (a & 0x007FFFFF)
 
 union ui32_f32 { uint32_t ui; uint32_t f; };
 
-uint_fast16_t float32_classify(uint32_t a, float_status *status)
+uint16_t float32_classify(uint32_t a, float_status *status)
 {
     union ui32_f32 uA;
-    uint_fast32_t uiA;
+    uint32_t uiA;
 
     uA.f = a;
     uiA = uA.ui;
 
-    uint_fast16_t infOrNaN = expF32UI(uiA) == 0xFF;
-    uint_fast16_t subnormalOrZero = expF32UI(uiA) == 0;
+    uint16_t infOrNaN = expF32UI(uiA) == 0xFF;
+    uint16_t subnormalOrZero = expF32UI(uiA) == 0;
     bool sign = signF32UI(uiA);
 
     return
@@ -551,23 +551,23 @@ uint64_t helper_fcvt_d_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 
 /* adapted from spike */
 #define isNaNF64UI(ui) (UINT64_C(0xFFE0000000000000) \
-                       < (uint64_t)((uint_fast64_t)ui << 1))
+                       < (uint64_t)((uint64_t)ui << 1))
 #define signF64UI(a) ((bool)((uint64_t) a >> 63))
-#define expF64UI(a) ((int_fast16_t)(a >> 52) & 0x7FF)
+#define expF64UI(a) ((int16_t)(a >> 52) & 0x7FF)
 #define fracF64UI(a) (a & UINT64_C(0x000FFFFFFFFFFFFF))
 
 union ui64_f64 { uint64_t ui; uint64_t f; };
 
-uint_fast16_t float64_classify(uint64_t a, float_status *status)
+uint16_t float64_classify(uint64_t a, float_status *status)
 {
     union ui64_f64 uA;
-    uint_fast64_t uiA;
+    uint64_t uiA;
 
     uA.f = a;
     uiA = uA.ui;
 
-    uint_fast16_t infOrNaN = expF64UI(uiA) == 0x7FF;
-    uint_fast16_t subnormalOrZero = expF64UI(uiA) == 0;
+    uint16_t infOrNaN = expF64UI(uiA) == 0x7FF;
+    uint16_t subnormalOrZero = expF64UI(uiA) == 0;
     bool sign = signF64UI(uiA);
 
     return
