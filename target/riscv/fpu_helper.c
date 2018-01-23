@@ -330,16 +330,8 @@ uint64_t helper_fcvt_s_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 #define expF32UI(a) ((int16_t)(a >> 23) & 0xFF)
 #define fracF32UI(a) (a & 0x007FFFFF)
 
-union ui32_f32 { uint32_t ui; uint32_t f; };
-
-uint16_t float32_classify(uint32_t a, float_status *status)
+uint16_t float32_classify(uint32_t uiA, float_status *status)
 {
-    union ui32_f32 uA;
-    uint32_t uiA;
-
-    uA.f = a;
-    uiA = uA.ui;
-
     uint16_t infOrNaN = expF32UI(uiA) == 0xFF;
     uint16_t subnormalOrZero = expF32UI(uiA) == 0;
     bool sign = signF32UI(uiA);
@@ -556,16 +548,8 @@ uint64_t helper_fcvt_d_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 #define expF64UI(a) ((int16_t)(a >> 52) & 0x7FF)
 #define fracF64UI(a) (a & UINT64_C(0x000FFFFFFFFFFFFF))
 
-union ui64_f64 { uint64_t ui; uint64_t f; };
-
-uint16_t float64_classify(uint64_t a, float_status *status)
+uint16_t float64_classify(uint64_t uiA, float_status *status)
 {
-    union ui64_f64 uA;
-    uint64_t uiA;
-
-    uA.f = a;
-    uiA = uA.ui;
-
     uint16_t infOrNaN = expF64UI(uiA) == 0x7FF;
     uint16_t subnormalOrZero = expF64UI(uiA) == 0;
     bool sign = signF64UI(uiA);
