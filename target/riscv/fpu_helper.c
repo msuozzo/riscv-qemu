@@ -25,7 +25,7 @@
 #include "exec/helper-proto.h"
 
 /* convert RISC-V rounding mode to IEEE library numbers */
-unsigned int ieee_rm[] = {
+static const unsigned int ieee_rm[] = {
     float_round_nearest_even,
     float_round_to_zero,
     float_round_down,
