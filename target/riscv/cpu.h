@@ -223,7 +223,6 @@ void riscv_cpu_list(FILE *f, fprintf_function cpu_fprintf);
 #define cpu_mmu_index riscv_cpu_mmu_index
 
 void riscv_set_mode(CPURISCVState *env, target_ulong newpriv);
-unsigned int softfloat_flags_to_riscv(unsigned int flag);
 uint_fast16_t float32_classify(uint32_t a, float_status *status);
 uint_fast16_t float64_classify(uint64_t a, float_status *status);
 
