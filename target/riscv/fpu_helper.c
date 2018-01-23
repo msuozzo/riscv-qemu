@@ -37,14 +37,17 @@ static const unsigned int ieee_rm[] = {
  * as the last step, convert rm codes to what the softfloat library expects
  * Adapted from Spike's decode.h:RM
  */
-#define RM ({                                             \
-if (rm == 7) {                                            \
-    rm = env->frm;                               \
-}                                                         \
-if (rm > 4) {                                             \
-    helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST); \
-}                                                         \
-ieee_rm[rm]; })
+static inline int round_mode(CPURISCVState *env, uint64_t rm)
+{
+    if (rm == 7) {
+        rm = env->frm;
+    } else if (rm > 4) {
+        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+    }
+    return ieee_rm[rm];
+}
+
+#define RM round_mode(env, rm)
 
 #ifndef CONFIG_USER_ONLY
 #define require_fp if (!(env->mstatus & MSTATUS_FS)) { \
