@@ -56,11 +56,11 @@ static inline void set_fp_round_mode(CPURISCVState *env, uint64_t rm)
 static unsigned int softfloat_flags_to_riscv(unsigned int flags)
 {
     int rv_flags = 0;
-    rv_flags |= (flags & float_flag_inexact) ? 1 : 0;
-    rv_flags |= (flags & float_flag_underflow) ? 2 : 0;
-    rv_flags |= (flags & float_flag_overflow) ? 4 : 0;
-    rv_flags |= (flags & float_flag_divbyzero) ? 8 : 0;
-    rv_flags |= (flags & float_flag_invalid) ? 16 : 0;
+    rv_flags |= (flags & float_flag_inexact) ? FPEXC_NX : 0;
+    rv_flags |= (flags & float_flag_underflow) ? FPEXC_UF : 0;
+    rv_flags |= (flags & float_flag_overflow) ? FPEXC_OF : 0;
+    rv_flags |= (flags & float_flag_divbyzero) ? FPEXC_DZ : 0;
+    rv_flags |= (flags & float_flag_invalid) ? FPEXC_NV : 0;
     return rv_flags;
 }
 
