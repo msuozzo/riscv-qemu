@@ -218,9 +218,11 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
             if ((pte & PTE_X)) {
                 *prot |= PAGE_EXEC;
             }
-            /* only add write permission on stores so that we
-               get a page table walk to update the dirty bit */
-            if ((pte & PTE_W) && access_type == MMU_DATA_STORE) {
+           /* only add write permission on stores or if the page
+              is already dirty, so that we don't miss further
+              page table walks to update the dirty bit */
+            if ((pte & PTE_W) &&
+                    (access_type == MMU_DATA_STORE || (pte & PTE_D))) {
                 *prot |= PAGE_WRITE;
             }
             return TRANSLATE_SUCCESS;
