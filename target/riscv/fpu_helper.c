@@ -332,21 +332,24 @@ uint64_t helper_fcvt_s_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 
 uint16_t float32_classify(uint32_t uiA, float_status *status)
 {
-    uint16_t infOrNaN = expF32UI(uiA) == 0xFF;
-    uint16_t subnormalOrZero = expF32UI(uiA) == 0;
+    bool infOrNaN = expF32UI(uiA) == 0xFF;
+    bool subnormalOrZero = expF32UI(uiA) == 0;
     bool sign = signF32UI(uiA);
+    bool fracZero = fracF32UI(uiA) == 0;
+    bool isNaN = isNaNF32UI(uiA);
+    bool isSNaN = float32_is_signaling_nan(uiA, status);
 
     return
-        (sign && infOrNaN && fracF32UI(uiA) == 0)           << 0 |
-        (sign && !infOrNaN && !subnormalOrZero)             << 1 |
-        (sign && subnormalOrZero && fracF32UI(uiA))         << 2 |
-        (sign && subnormalOrZero && fracF32UI(uiA) == 0)    << 3 |
-        (!sign && infOrNaN && fracF32UI(uiA) == 0)          << 7 |
-        (!sign && !infOrNaN && !subnormalOrZero)            << 6 |
-        (!sign && subnormalOrZero && fracF32UI(uiA))        << 5 |
-        (!sign && subnormalOrZero && fracF32UI(uiA) == 0)   << 4 |
-        (isNaNF32UI(uiA) &&  float32_is_signaling_nan(uiA, status)) << 8 |
-        (isNaNF32UI(uiA) && !float32_is_signaling_nan(uiA, status)) << 9;
+        (sign && infOrNaN && fracZero)           << 0 |
+        (sign && !infOrNaN && !subnormalOrZero)  << 1 |
+        (sign && subnormalOrZero && !fracZero)   << 2 |
+        (sign && subnormalOrZero && fracZero)    << 3 |
+        (!sign && infOrNaN && fracZero)          << 7 |
+        (!sign && !infOrNaN && !subnormalOrZero) << 6 |
+        (!sign && subnormalOrZero && !fracZero)  << 5 |
+        (!sign && subnormalOrZero && fracZero)   << 4 |
+        (isNaN && isSNaN)                        << 8 |
+        (isNaN && !isSNaN)                       << 9;
 }
 
 target_ulong helper_fclass_s(CPURISCVState *env, uint64_t frs1)
@@ -550,21 +553,24 @@ uint64_t helper_fcvt_d_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 
 uint16_t float64_classify(uint64_t uiA, float_status *status)
 {
-    uint16_t infOrNaN = expF64UI(uiA) == 0x7FF;
-    uint16_t subnormalOrZero = expF64UI(uiA) == 0;
+    bool infOrNaN = expF64UI(uiA) == 0x7FF;
+    bool subnormalOrZero = expF64UI(uiA) == 0;
     bool sign = signF64UI(uiA);
+    bool fracZero = fracF32UI(uiA) == 0;
+    bool isNaN = isNaNF64UI(uiA);
+    bool isSNaN = float64_is_signaling_nan(uiA, status);
 
     return
-        (sign && infOrNaN && fracF64UI(uiA) == 0)        << 0 |
-        (sign && !infOrNaN && !subnormalOrZero)            << 1 |
-        (sign && subnormalOrZero && fracF64UI(uiA))        << 2 |
-        (sign && subnormalOrZero && fracF64UI(uiA) == 0)   << 3 |
-        (!sign && infOrNaN && fracF64UI(uiA) == 0)         << 7 |
-        (!sign && !infOrNaN && !subnormalOrZero)           << 6 |
-        (!sign && subnormalOrZero && fracF64UI(uiA))       << 5 |
-        (!sign && subnormalOrZero && fracF64UI(uiA) == 0)  << 4 |
-        (isNaNF64UI(uiA) &&  float64_is_signaling_nan(uiA, status)) << 8 |
-        (isNaNF64UI(uiA) && !float64_is_signaling_nan(uiA, status)) << 9;
+        (sign && infOrNaN && fracZero)           << 0 |
+        (sign && !infOrNaN && !subnormalOrZero)  << 1 |
+        (sign && subnormalOrZero && !fracZero)   << 2 |
+        (sign && subnormalOrZero && fracZero)    << 3 |
+        (!sign && infOrNaN && fracZero)          << 7 |
+        (!sign && !infOrNaN && !subnormalOrZero) << 6 |
+        (!sign && subnormalOrZero && !fracZero)  << 5 |
+        (!sign && subnormalOrZero && fracZero)   << 4 |
+        (isNaN && isSNaN)                        << 8 |
+        (isNaN && !isSNaN)                       << 9;
 }
 
 target_ulong helper_fclass_d(CPURISCVState *env, uint64_t frs1)
