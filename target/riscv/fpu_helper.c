@@ -330,7 +330,7 @@ uint64_t helper_fcvt_s_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 #define expF32UI(a) ((int16_t)(a >> 23) & 0xFF)
 #define fracF32UI(a) (a & 0x007FFFFF)
 
-static uint16_t float32_classify(uint32_t uiA, float_status *status)
+static target_ulong float32_classify(uint32_t uiA, float_status *status)
 {
     bool infOrNaN = expF32UI(uiA) == 0xFF;
     bool subnormalOrZero = expF32UI(uiA) == 0;
@@ -551,7 +551,7 @@ uint64_t helper_fcvt_d_lu(CPURISCVState *env, uint64_t rs1, uint64_t rm)
 #define expF64UI(a) ((int16_t)(a >> 52) & 0x7FF)
 #define fracF64UI(a) (a & UINT64_C(0x000FFFFFFFFFFFFF))
 
-static uint16_t float64_classify(uint64_t uiA, float_status *status)
+static target_ulong float64_classify(uint64_t uiA, float_status *status)
 {
     bool infOrNaN = expF64UI(uiA) == 0x7FF;
     bool subnormalOrZero = expF64UI(uiA) == 0;
