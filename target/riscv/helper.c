@@ -202,6 +202,7 @@ static int get_physical_address(CPURISCVState *env, hwaddr *physical,
             target_ulong updated_pte = pte | PTE_A |
                 (access_type == MMU_DATA_STORE ? PTE_D : 0);
             if (updated_pte != pte) {
+                pte = updated_pte;
                 /* NOTE: this should be atomic e.g. use cmpxchg */
                 stq_phys(cs->as, pte_addr, pte);
             }
