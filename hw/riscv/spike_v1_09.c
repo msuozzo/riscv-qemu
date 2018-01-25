@@ -80,9 +80,6 @@ static void riscv_spike_board_init(MachineState *machine)
     const struct MemmapEntry *memmap = spike_memmap;
 
     SpikeState *s = g_new0(SpikeState, 1);
-    /* const char *cpu_model = machine->cpu_model; */
-    /* const char *kernel_cmdline = machine->kernel_cmdline; */
-    /* const char *initrd_filename = machine->initrd_filename; */
     MemoryRegion *system_memory = get_system_memory();
     MemoryRegion *main_mem = g_new(MemoryRegion, 1);
     MemoryRegion *boot_rom = g_new(MemoryRegion, 1);
