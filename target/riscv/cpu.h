@@ -246,15 +246,6 @@ static inline void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
 #endif
 }
 
-static inline int riscv_mstatus_fs(CPURISCVState *env)
-{
-#ifndef CONFIG_USER_ONLY
-    return env->mstatus & MSTATUS_FS;
-#else
-    return TRUE;
-#endif
-}
-
 void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         target_ulong csrno);
 target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno);

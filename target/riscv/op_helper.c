@@ -73,6 +73,15 @@ void helper_raise_exception(CPURISCVState *env, uint32_t exception)
     do_raise_exception_err(env, exception, 0);
 }
 
+static void validate_mstatus_fs(CPURISCVState *env, uintptr_t ra)
+{
+#ifndef CONFIG_USER_ONLY
+    if (!(env->mstatus & MSTATUS_FS)) {
+        do_raise_exception_err(env, RISCV_EXCP_ILLEGAL_INST, ra);
+    }
+#endif
+}
+
 /*
  * Handle writes to CSRs and any resulting special behavior
  *
@@ -93,26 +102,17 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
 
     switch (csrno) {
     case CSR_FFLAGS:
-        if (riscv_mstatus_fs(env)) {
-            env->fflags = val_to_write & (FSR_AEXC >> FSR_AEXC_SHIFT);
-        } else {
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        }
+        validate_mstatus_fs(env, GETPC());
+        env->fflags = val_to_write & (FSR_AEXC >> FSR_AEXC_SHIFT);
         break;
     case CSR_FRM:
-        if (riscv_mstatus_fs(env)) {
-            env->frm = val_to_write & (FSR_RD >> FSR_RD_SHIFT);
-        } else {
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        }
+        validate_mstatus_fs(env, GETPC());
+        env->frm = val_to_write & (FSR_RD >> FSR_RD_SHIFT);
         break;
     case CSR_FCSR:
-        if (riscv_mstatus_fs(env)) {
-            env->fflags = (val_to_write & FSR_AEXC) >> FSR_AEXC_SHIFT;
-            env->frm = (val_to_write & FSR_RD) >> FSR_RD_SHIFT;
-        } else {
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        }
+        validate_mstatus_fs(env, GETPC());
+        env->fflags = (val_to_write & FSR_AEXC) >> FSR_AEXC_SHIFT;
+        env->frm = (val_to_write & FSR_RD) >> FSR_RD_SHIFT;
         break;
 #ifndef CONFIG_USER_ONLY
     case CSR_MSTATUS: {
@@ -200,20 +200,16 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
     }
     case CSR_MINSTRET:
         qemu_log_mask(LOG_UNIMP, "CSR_MINSTRET: write not implemented");
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        break;
+        goto do_illegal;
     case CSR_MCYCLE:
         qemu_log_mask(LOG_UNIMP, "CSR_MCYCLE: write not implemented");
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        break;
+        goto do_illegal;
     case CSR_MINSTRETH:
         qemu_log_mask(LOG_UNIMP, "CSR_MINSTRETH: write not implemented");
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        break;
+        goto do_illegal;
     case CSR_MCYCLEH:
         qemu_log_mask(LOG_UNIMP, "CSR_MCYCLEH: write not implemented");
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        break;
+        goto do_illegal;
     case CSR_MUCOUNTEREN:
         env->mucounteren = val_to_write;
         break;
@@ -263,10 +259,9 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
     case CSR_STVEC:
         if (val_to_write & 1) {
             qemu_log_mask(LOG_UNIMP, "CSR_STVEC: vectored traps not supported");
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        } else {
-            env->stvec = val_to_write >> 2 << 2;
+            goto do_illegal;
         }
+        env->stvec = val_to_write >> 2 << 2;
         break;
     case CSR_SCOUNTEREN:
         env->scounteren = val_to_write;
@@ -286,10 +281,9 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
     case CSR_MTVEC:
         if (val_to_write & 1) {
             qemu_log_mask(LOG_UNIMP, "CSR_MTVEC: vectored traps not supported");
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        } else {
-            env->mtvec = val_to_write >> 2 << 2;
+            goto do_illegal;
         }
+        env->mtvec = val_to_write >> 2 << 2;
         break;
     case CSR_MCOUNTEREN:
         env->mcounteren = val_to_write;
@@ -305,8 +299,7 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         break;
     case CSR_MISA: {
         qemu_log_mask(LOG_UNIMP, "CSR_MISA: misa writes not supported");
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        break;
+        goto do_illegal;
     }
     case CSR_PMPCFG0:
     case CSR_PMPCFG1:
@@ -332,9 +325,10 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
     case CSR_PMPADDR15:
        pmpaddr_csr_write(env, csrno - CSR_PMPADDR0, val_to_write);
        break;
+    do_illegal:
 #endif
     default:
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        do_raise_exception_err(env, RISCV_EXCP_ILLEGAL_INST, GETPC());
     }
 }
 
@@ -381,23 +375,14 @@ inline target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
 
     switch (csrno) {
     case CSR_FFLAGS:
-        if (riscv_mstatus_fs(env)) {
-            return env->fflags;
-        } else {
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        }
+        validate_mstatus_fs(env, GETPC());
+        return env->fflags;
     case CSR_FRM:
-        if (riscv_mstatus_fs(env)) {
-            return env->frm;
-        } else {
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        }
+        validate_mstatus_fs(env, GETPC());
+        return env->frm;
     case CSR_FCSR:
-        if (riscv_mstatus_fs(env)) {
-            return env->fflags << FSR_AEXC_SHIFT | env->frm << FSR_RD_SHIFT;
-        } else {
-            helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-        }
+        validate_mstatus_fs(env, GETPC());
+        return env->fflags << FSR_AEXC_SHIFT | env->frm << FSR_RD_SHIFT;
 #ifdef CONFIG_USER_ONLY
     case CSR_TIME:
     case CSR_CYCLE:
@@ -523,8 +508,7 @@ inline target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
 #endif
     }
     /* used by e.g. MTIME read */
-    helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
-    return 0;
+    do_raise_exception_err(env, RISCV_EXCP_ILLEGAL_INST, GETPC());
 }
 
 /*
@@ -592,12 +576,12 @@ void riscv_set_mode(CPURISCVState *env, target_ulong newpriv)
 target_ulong helper_sret(CPURISCVState *env, target_ulong cpu_pc_deb)
 {
     if (!(env->priv >= PRV_S)) {
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        do_raise_exception_err(env, RISCV_EXCP_ILLEGAL_INST, GETPC());
     }
 
     target_ulong retpc = env->sepc;
     if (!riscv_has_ext(env, RVC) && (retpc & 0x3)) {
-        helper_raise_exception(env, RISCV_EXCP_INST_ADDR_MIS);
+        do_raise_exception_err(env, RISCV_EXCP_INST_ADDR_MIS, GETPC());
     }
 
     target_ulong mstatus = env->mstatus;
@@ -615,12 +599,12 @@ target_ulong helper_sret(CPURISCVState *env, target_ulong cpu_pc_deb)
 target_ulong helper_mret(CPURISCVState *env, target_ulong cpu_pc_deb)
 {
     if (!(env->priv >= PRV_M)) {
-        helper_raise_exception(env, RISCV_EXCP_ILLEGAL_INST);
+        do_raise_exception_err(env, RISCV_EXCP_ILLEGAL_INST, GETPC());
     }
 
     target_ulong retpc = env->mepc;
     if (!riscv_has_ext(env, RVC) && (retpc & 0x3)) {
-        helper_raise_exception(env, RISCV_EXCP_INST_ADDR_MIS);
+        do_raise_exception_err(env, RISCV_EXCP_INST_ADDR_MIS, GETPC());
     }
 
     target_ulong mstatus = env->mstatus;
