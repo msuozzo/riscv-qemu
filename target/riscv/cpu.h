@@ -82,8 +82,6 @@ struct CPURISCVState {
     target_ulong load_val;
 
     target_ulong frm;
-    target_ulong fstatus;
-    target_ulong fflags;
 
     target_ulong badaddr;
 
@@ -230,6 +228,9 @@ void QEMU_NORETURN do_raise_exception_err(CPURISCVState *env,
 /* hw/riscv/sifive_clint.c  - supplies instret by approximating */
 uint64_t cpu_riscv_read_instret(CPURISCVState *env);
 uint64_t cpu_riscv_read_rtc(void);
+
+target_ulong cpu_riscv_get_fflags(CPURISCVState *env);
+void cpu_riscv_set_fflags(CPURISCVState *env, target_ulong);
 
 #define TB_FLAGS_MMU_MASK  3
 #define TB_FLAGS_FP_ENABLE MSTATUS_FS

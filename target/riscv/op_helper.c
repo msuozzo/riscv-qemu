@@ -103,7 +103,7 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
     switch (csrno) {
     case CSR_FFLAGS:
         validate_mstatus_fs(env, GETPC());
-        env->fflags = val_to_write & (FSR_AEXC >> FSR_AEXC_SHIFT);
+        cpu_riscv_set_fflags(env, val_to_write & (FSR_AEXC >> FSR_AEXC_SHIFT));
         break;
     case CSR_FRM:
         validate_mstatus_fs(env, GETPC());
@@ -111,8 +111,8 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         break;
     case CSR_FCSR:
         validate_mstatus_fs(env, GETPC());
-        env->fflags = (val_to_write & FSR_AEXC) >> FSR_AEXC_SHIFT;
         env->frm = (val_to_write & FSR_RD) >> FSR_RD_SHIFT;
+        cpu_riscv_set_fflags(env, (val_to_write & FSR_AEXC) >> FSR_AEXC_SHIFT);
         break;
 #ifndef CONFIG_USER_ONLY
     case CSR_MSTATUS: {
@@ -376,13 +376,14 @@ inline target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
     switch (csrno) {
     case CSR_FFLAGS:
         validate_mstatus_fs(env, GETPC());
-        return env->fflags;
+        return cpu_riscv_get_fflags(env);
     case CSR_FRM:
         validate_mstatus_fs(env, GETPC());
         return env->frm;
     case CSR_FCSR:
         validate_mstatus_fs(env, GETPC());
-        return env->fflags << FSR_AEXC_SHIFT | env->frm << FSR_RD_SHIFT;
+        return (cpu_riscv_get_fflags(env) << FSR_AEXC_SHIFT
+                | env->frm << FSR_RD_SHIFT);
 #ifdef CONFIG_USER_ONLY
     case CSR_TIME:
     case CSR_CYCLE:
