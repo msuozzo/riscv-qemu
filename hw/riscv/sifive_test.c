@@ -63,10 +63,6 @@ static const MemoryRegionOps sifive_test_ops = {
     }
 };
 
-static Property sifive_test_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
-
 static void sifive_test_init(Object *obj)
 {
     SiFiveTestState *s = SIFIVE_TEST(obj);
@@ -76,19 +72,11 @@ static void sifive_test_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
 }
 
-static void sifive_test_class_init(ObjectClass *klass, void *data)
-{
-    DeviceClass *dc = DEVICE_CLASS(klass);
-
-    dc->props = sifive_test_properties;
-}
-
 static const TypeInfo sifive_test_info = {
     .name          = TYPE_SIFIVE_TEST,
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(SiFiveTestState),
     .instance_init = sifive_test_init,
-    .class_init    = sifive_test_class_init,
 };
 
 static void sifive_test_register_types(void)

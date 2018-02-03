@@ -59,10 +59,6 @@ static const MemoryRegionOps sifive_prci_ops = {
     }
 };
 
-static Property sifive_prci_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
-
 static void sifive_prci_init(Object *obj)
 {
     SiFivePRCIState *s = SIFIVE_PRCI(obj);
@@ -72,19 +68,11 @@ static void sifive_prci_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
 }
 
-static void sifive_prci_class_init(ObjectClass *klass, void *data)
-{
-    DeviceClass *dc = DEVICE_CLASS(klass);
-
-    dc->props = sifive_prci_properties;
-}
-
 static const TypeInfo sifive_prci_info = {
     .name          = TYPE_SIFIVE_PRCI,
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(SiFivePRCIState),
     .instance_init = sifive_prci_init,
-    .class_init    = sifive_prci_class_init,
 };
 
 static void sifive_prci_register_types(void)
