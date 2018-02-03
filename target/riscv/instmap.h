@@ -147,34 +147,23 @@ enum {
 #define MASK_OP_JALR(op)   (MASK_OP_MAJOR(op) | (op & (0x7 << 12)))
 /* no enum since OPC_RISC_JALR is the actual value */
 
-#define MASK_OP_ATOMIC(op)   (MASK_OP_MAJOR(op) | (op & ((0x7 << 12) \
-                                                | (0x7F << 25))))
-#define MASK_OP_ATOMIC_NO_AQ_RL(op)   (MASK_OP_MAJOR(op) | (op & ((0x7 << 12)\
-                                                         | (0x1F << 27))))
-enum {
-    OPC_RISC_LR_W        = OPC_RISC_ATOMIC | (0x2 << 12) | (0x02 << 27),
-    OPC_RISC_SC_W        = OPC_RISC_ATOMIC | (0x2 << 12) | (0x03 << 27),
-    OPC_RISC_AMOSWAP_W   = OPC_RISC_ATOMIC | (0x2 << 12) | (0x01 << 27),
-    OPC_RISC_AMOADD_W    = OPC_RISC_ATOMIC | (0x2 << 12) | (0x00 << 27),
-    OPC_RISC_AMOXOR_W    = OPC_RISC_ATOMIC | (0x2 << 12) | (0x04 << 27),
-    OPC_RISC_AMOAND_W    = OPC_RISC_ATOMIC | (0x2 << 12) | (0x0C << 27),
-    OPC_RISC_AMOOR_W     = OPC_RISC_ATOMIC | (0x2 << 12) | (0x08 << 27),
-    OPC_RISC_AMOMIN_W    = OPC_RISC_ATOMIC | (0x2 << 12) | (0x10 << 27),
-    OPC_RISC_AMOMAX_W    = OPC_RISC_ATOMIC | (0x2 << 12) | (0x14 << 27),
-    OPC_RISC_AMOMINU_W   = OPC_RISC_ATOMIC | (0x2 << 12) | (0x18 << 27),
-    OPC_RISC_AMOMAXU_W   = OPC_RISC_ATOMIC | (0x2 << 12) | (0x1C << 27),
+#define MASK_OP_ATOMIC(op) \
+    (MASK_OP_MAJOR(op) | (op & ((0x7 << 12) | (0x7F << 25))))
+#define MASK_OP_ATOMIC_NO_AQ_RL_SZ(op) \
+    (MASK_OP_MAJOR(op) | (op & (0x1F << 27)))
 
-    OPC_RISC_LR_D        = OPC_RISC_ATOMIC | (0x3 << 12) | (0x02 << 27),
-    OPC_RISC_SC_D        = OPC_RISC_ATOMIC | (0x3 << 12) | (0x03 << 27),
-    OPC_RISC_AMOSWAP_D   = OPC_RISC_ATOMIC | (0x3 << 12) | (0x01 << 27),
-    OPC_RISC_AMOADD_D    = OPC_RISC_ATOMIC | (0x3 << 12) | (0x00 << 27),
-    OPC_RISC_AMOXOR_D    = OPC_RISC_ATOMIC | (0x3 << 12) | (0x04 << 27),
-    OPC_RISC_AMOAND_D    = OPC_RISC_ATOMIC | (0x3 << 12) | (0x0C << 27),
-    OPC_RISC_AMOOR_D     = OPC_RISC_ATOMIC | (0x3 << 12) | (0x08 << 27),
-    OPC_RISC_AMOMIN_D    = OPC_RISC_ATOMIC | (0x3 << 12) | (0x10 << 27),
-    OPC_RISC_AMOMAX_D    = OPC_RISC_ATOMIC | (0x3 << 12) | (0x14 << 27),
-    OPC_RISC_AMOMINU_D   = OPC_RISC_ATOMIC | (0x3 << 12) | (0x18 << 27),
-    OPC_RISC_AMOMAXU_D   = OPC_RISC_ATOMIC | (0x3 << 12) | (0x1C << 27),
+enum {
+    OPC_RISC_LR          = OPC_RISC_ATOMIC | (0x02 << 27),
+    OPC_RISC_SC          = OPC_RISC_ATOMIC | (0x03 << 27),
+    OPC_RISC_AMOSWAP     = OPC_RISC_ATOMIC | (0x01 << 27),
+    OPC_RISC_AMOADD      = OPC_RISC_ATOMIC | (0x00 << 27),
+    OPC_RISC_AMOXOR      = OPC_RISC_ATOMIC | (0x04 << 27),
+    OPC_RISC_AMOAND      = OPC_RISC_ATOMIC | (0x0C << 27),
+    OPC_RISC_AMOOR       = OPC_RISC_ATOMIC | (0x08 << 27),
+    OPC_RISC_AMOMIN      = OPC_RISC_ATOMIC | (0x10 << 27),
+    OPC_RISC_AMOMAX      = OPC_RISC_ATOMIC | (0x14 << 27),
+    OPC_RISC_AMOMINU     = OPC_RISC_ATOMIC | (0x18 << 27),
+    OPC_RISC_AMOMAXU     = OPC_RISC_ATOMIC | (0x1C << 27),
 };
 
 #define MASK_OP_SYSTEM(op)   (MASK_OP_MAJOR(op) | (op & (0x7 << 12)))

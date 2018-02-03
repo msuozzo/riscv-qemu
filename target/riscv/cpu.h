@@ -79,10 +79,9 @@ struct CPURISCVState {
     uint64_t fpr[32]; /* assume both F and D extensions */
     target_ulong pc;
     target_ulong load_res;
+    target_ulong load_val;
 
     target_ulong frm;
-    target_ulong fstatus;
-    target_ulong fflags;
 
     target_ulong badaddr;
 
@@ -92,11 +91,7 @@ struct CPURISCVState {
     target_ulong priv_ver;
     target_ulong misa;
 
-#ifdef CONFIG_USER_ONLY
-    uint32_t amoinsn;
-    target_long amoaddr;
-    target_long amotest;
-#else
+#ifndef CONFIG_USER_ONLY
     target_ulong priv;
 
     target_ulong mhartid;
@@ -234,28 +229,27 @@ void QEMU_NORETURN do_raise_exception_err(CPURISCVState *env,
 uint64_t cpu_riscv_read_instret(CPURISCVState *env);
 uint64_t cpu_riscv_read_rtc(void);
 
+target_ulong cpu_riscv_get_fflags(CPURISCVState *env);
+void cpu_riscv_set_fflags(CPURISCVState *env, target_ulong);
+
+#define TB_FLAGS_MMU_MASK  3
+#define TB_FLAGS_FP_ENABLE MSTATUS_FS
+
 static inline void cpu_get_tb_cpu_state(CPURISCVState *env, target_ulong *pc,
                                         target_ulong *cs_base, uint32_t *flags)
 {
     *pc = env->pc;
     *cs_base = 0;
-    *flags = cpu_mmu_index(env, false);
-}
-
-static inline int riscv_mstatus_fs(CPURISCVState *env)
-{
-#ifndef CONFIG_USER_ONLY
-    return env->mstatus & MSTATUS_FS;
+#ifdef CONFIG_USER_ONLY
+    *flags = TB_FLAGS_FP_ENABLE;
 #else
-    return TRUE;
+    *flags = cpu_mmu_index(env, 0) | (env->mstatus & MSTATUS_FS);
 #endif
 }
 
 void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         target_ulong csrno);
 target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno);
-
-void validate_csr(CPURISCVState *env, uint64_t which, uint64_t write);
 
 #include "exec/cpu-all.h"
 
