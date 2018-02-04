@@ -1099,6 +1099,7 @@ static void gen_fp_arith(DisasContext *ctx, uint32_t opc, int rd,
         case 3: /* FCVT_S_LU */
             gen_set_rm(ctx, rm);
             gen_helper_fcvt_s_lu(cpu_fpr[rd], cpu_env, t0);
+            break;
 #endif
         default:
             goto do_illegal;
