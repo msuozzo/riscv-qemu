@@ -32,7 +32,7 @@
 
 static Property riscv_harts_props[] = {
     DEFINE_PROP_UINT32("num-harts", RISCVHartArrayState, num_harts, 1),
-    DEFINE_PROP_STRING("cpu-model", RISCVHartArrayState, cpu_model),
+    DEFINE_PROP_STRING("cpu-type", RISCVHartArrayState, cpu_type),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -52,7 +52,7 @@ static void riscv_harts_realize(DeviceState *dev, Error **errp)
 
     for (n = 0; n < s->num_harts; n++) {
 
-        object_initialize(&s->harts[n], sizeof(RISCVCPU), s->cpu_model);
+        object_initialize(&s->harts[n], sizeof(RISCVCPU), s->cpu_type);
         s->harts[n].env.mhartid = n;
         object_property_add_child(OBJECT(s), "harts[*]", OBJECT(&s->harts[n]),
                                   &error_abort);

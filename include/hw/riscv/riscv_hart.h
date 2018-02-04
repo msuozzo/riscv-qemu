@@ -38,7 +38,7 @@ typedef struct RISCVHartArrayState {
 
     /*< public >*/
     uint32_t num_harts;
-    char *cpu_model;
+    char *cpu_type;
     RISCVCPU *harts;
 } RISCVHartArrayState;
 

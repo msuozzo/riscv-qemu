@@ -89,7 +89,7 @@ static void riscv_spike_board_init(MachineState *machine)
     object_property_add_child(OBJECT(machine), "soc", OBJECT(&s->soc),
                               &error_abort);
     object_property_set_str(OBJECT(&s->soc), TYPE_RISCV_CPU_IMAFDCSU_PRIV_1_09,
-                            "cpu-model", &error_abort);
+                            "cpu-type", &error_abort);
     object_property_set_int(OBJECT(&s->soc), smp_cpus, "num-harts",
                             &error_abort);
     object_property_set_bool(OBJECT(&s->soc), true, "realized",
