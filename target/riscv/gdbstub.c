@@ -25,7 +25,6 @@
 
 int riscv_cpu_gdb_read_register(CPUState *cs, uint8_t *mem_buf, int n)
 {
-    /* TODO proper x0 handling */
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
 
@@ -41,11 +40,13 @@ int riscv_cpu_gdb_read_register(CPUState *cs, uint8_t *mem_buf, int n)
 
 int riscv_cpu_gdb_write_register(CPUState *cs, uint8_t *mem_buf, int n)
 {
-    /* TODO proper x0 handling */
     RISCVCPU *cpu = RISCV_CPU(cs);
     CPURISCVState *env = &cpu->env;
 
-    if (n < 32) {
+    if (n == 0) {
+        /* discard writes to x0 */
+        return sizeof(target_ulong);
+    } else if (n < 32) {
         env->gpr[n] = ldtul_p(mem_buf);
         return sizeof(target_ulong);
     } else if (n == 32) {
