@@ -70,7 +70,7 @@ static uint64_t load_kernel(const char *kernel_filename)
 
     if (load_elf(kernel_filename, identity_translate, NULL,
                  &kernel_entry, NULL, &kernel_high,
-                 /* little_endian = */ 0, ELF_MACHINE, 1, 0) < 0) {
+                 0, ELF_MACHINE, 1, 0) < 0) {
         error_report("qemu: could not load kernel '%s'", kernel_filename);
         exit(1);
     }
