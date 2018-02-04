@@ -410,6 +410,8 @@
 # An enumeration of cpu types that enable additional information during
 # @query-cpus.
 #
+# @riscv: since 2.12
+#
 # Since: 2.6
 ##
 { 'enum': 'CpuInfoArch',
