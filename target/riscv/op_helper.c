@@ -59,7 +59,7 @@ static int validate_vm(CPURISCVState *env, target_ulong vm)
 #endif
 
 /* Exceptions processing helpers */
-inline void QEMU_NORETURN do_raise_exception_err(CPURISCVState *env,
+void QEMU_NORETURN do_raise_exception_err(CPURISCVState *env,
                                           uint32_t exception, uintptr_t pc)
 {
     CPUState *cs = CPU(riscv_env_get_cpu(env));
@@ -87,7 +87,7 @@ static void validate_mstatus_fs(CPURISCVState *env, uintptr_t ra)
  *
  * Adapted from Spike's processor_t::set_csr
  */
-inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
+void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
         target_ulong csrno)
 {
     #ifdef RISCV_DEBUG_PRINT
@@ -337,7 +337,7 @@ inline void csr_write_helper(CPURISCVState *env, target_ulong val_to_write,
  *
  * Adapted from Spike's processor_t::get_csr
  */
-inline target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
+target_ulong csr_read_helper(CPURISCVState *env, target_ulong csrno)
 {
     #ifdef RISCV_DEBUG_PRINT
     qemu_log_mask(LOG_TRACE, "Read CSR reg: 0x" TARGET_FMT_lx, csrno);
