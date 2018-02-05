@@ -80,7 +80,7 @@ bool riscv_cpu_exec_interrupt(CPUState *cs, int interrupt_request)
         RISCVCPU *cpu = RISCV_CPU(cs);
         CPURISCVState *env = &cpu->env;
         int interruptno = riscv_cpu_hw_interrupts_pending(env);
-        if (interruptno + 1) {
+        if (interruptno >= 0) {
             cs->exception_index = RISCV_EXCP_INT_FLAG | interruptno;
             riscv_cpu_do_interrupt(cs);
             return true;
