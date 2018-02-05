@@ -1795,14 +1795,15 @@ static void decode_RV32_64G(CPURISCVState *env, DisasContext *ctx)
                      GET_RM(ctx->opcode));
         break;
     case OPC_RISC_FENCE:
+#ifndef CONFIG_USER_ONLY
+        /* standard fence is nop, fence_i flushes TB (like an icache): */
         if (ctx->opcode & 0x1000) { /* FENCE_I */
-            /* FENCE_I is a nop within QEMU, as we auto-detect
-               stores that affect translated blocks.  There are
-               no other implications to global caches.  */
-        } else {
-            /* FENCE is a full memory barrier.  */
-            tcg_gen_mb(TCG_MO_ALL | TCG_BAR_SC);
+            gen_helper_fence_i(cpu_env);
+            tcg_gen_movi_tl(cpu_pc, ctx->next_pc);
+            tcg_gen_exit_tb(0); /* no chaining */
+            ctx->bstate = BS_BRANCH;
         }
+#endif
         break;
     case OPC_RISC_SYSTEM:
         gen_system(ctx, MASK_OP_SYSTEM(ctx->opcode), rd, rs1,
