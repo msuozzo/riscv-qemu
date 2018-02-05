@@ -634,6 +634,11 @@ void helper_wfi(CPURISCVState *env)
     cpu_loop_exit(cs);
 }
 
+void helper_fence_i(CPURISCVState *env)
+{
+    /* FENCE.I is a no-op in qemu as self modifying code is detected */
+}
+
 void helper_tlb_flush(CPURISCVState *env)
 {
     RISCVCPU *cpu = riscv_env_get_cpu(env);
