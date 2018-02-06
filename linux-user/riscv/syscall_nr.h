@@ -284,4 +284,4 @@
 #define TARGET_NR_mlock2 284
 #define TARGET_NR_copy_file_range 285
 
-#define TARGET_NR_syscalls (__NR_finit_module + 1)
+#define TARGET_NR_syscalls (TARGET_NR_copy_file_range + 1)
