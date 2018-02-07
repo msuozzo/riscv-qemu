@@ -97,43 +97,43 @@ uint64_t helper_fmadd_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2,
 uint64_t helper_fmsub_s(CPURISCVState *env, uint64_t frs1, uint64_t frs2,
                         uint64_t frs3)
 {
-    return float32_muladd(frs1, frs2, frs3 ^ (uint32_t)INT32_MIN, 0,
+    return float32_muladd(frs1, frs2, frs3, float_muladd_negate_c,
                           &env->fp_status);
 }
 
 uint64_t helper_fmsub_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2,
                         uint64_t frs3)
 {
-    return float64_muladd(frs1, frs2, frs3 ^ (uint64_t)INT64_MIN, 0,
+    return float64_muladd(frs1, frs2, frs3, float_muladd_negate_c,
                           &env->fp_status);
 }
 
 uint64_t helper_fnmsub_s(CPURISCVState *env, uint64_t frs1, uint64_t frs2,
                          uint64_t frs3)
 {
-    return float32_muladd(frs1 ^ (uint32_t)INT32_MIN, frs2, frs3, 0,
+    return float32_muladd(frs1, frs2, frs3, float_muladd_negate_product,
                           &env->fp_status);
 }
 
 uint64_t helper_fnmsub_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2,
                          uint64_t frs3)
 {
-    return float64_muladd(frs1 ^ (uint64_t)INT64_MIN, frs2, frs3, 0,
+    return float64_muladd(frs1, frs2, frs3, float_muladd_negate_product,
                           &env->fp_status);
 }
 
 uint64_t helper_fnmadd_s(CPURISCVState *env, uint64_t frs1, uint64_t frs2,
                          uint64_t frs3)
 {
-    return float32_muladd(frs1 ^ (uint32_t)INT32_MIN, frs2,
-                          frs3 ^ (uint32_t)INT32_MIN, 0, &env->fp_status);
+    return float32_muladd(frs1, frs2, frs3, float_muladd_negate_c |
+                          float_muladd_negate_product, &env->fp_status);
 }
 
 uint64_t helper_fnmadd_d(CPURISCVState *env, uint64_t frs1, uint64_t frs2,
                          uint64_t frs3)
 {
-    return float64_muladd(frs1 ^ (uint64_t)INT64_MIN, frs2,
-                          frs3 ^ (uint64_t)INT64_MIN, 0, &env->fp_status);
+    return float64_muladd(frs1, frs2, frs3, float_muladd_negate_c |
+                          float_muladd_negate_product, &env->fp_status);
 }
 
 uint64_t helper_fadd_s(CPURISCVState *env, uint64_t frs1, uint64_t frs2)
