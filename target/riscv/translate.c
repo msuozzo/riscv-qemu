@@ -679,6 +679,8 @@ static void gen_fp_load(DisasContext *ctx, uint32_t opc, int rd,
     switch (opc) {
     case OPC_RISC_FLW:
         tcg_gen_qemu_ld_i64(cpu_fpr[rd], t0, ctx->mem_idx, MO_TEUL);
+        /* RISC-V requires NaN-boxing of narrower width floating point values */
+        tcg_gen_ori_i64(cpu_fpr[rd], cpu_fpr[rd], 0xffffffff00000000ULL);
         break;
     case OPC_RISC_FLD:
         tcg_gen_qemu_ld_i64(cpu_fpr[rd], t0, ctx->mem_idx, MO_TEQ);
